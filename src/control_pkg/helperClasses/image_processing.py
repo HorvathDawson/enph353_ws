@@ -16,7 +16,9 @@ def find_Cars(im):
     hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
     lower = np.array([118, 50, 50])
     upper = np.array([130, 255, 255])
+    kernel = np.ones((20, 20), np.uint8)
     mask = cv2.inRange(hsv, lower, upper)
+    mask = cv2.dilate(mask, kernel, iterations=2)
     return mask
 
 
