@@ -4,6 +4,7 @@ from __future__ import print_function
 from helperClasses.image_processing import hugh_lines
 from helperClasses.image_processing import find_lines
 from helperClasses.image_processing import find_Cars
+from helperClasses.image_processing import filter_cars
 from helperClasses.image_processing import COM
 from geometry_msgs.msg import Twist
 import sys
@@ -19,12 +20,16 @@ class edge_following:
     self.bridge = CvBridge()
     self.image_sub = rospy.Subscriber("/R1/pi_camera/image_raw",Image,self.callback)
     self.vel_pub = rospy.Publisher('/R1/skid_vel', Twist, queue_size=1)
-    self.rightEdge = False
+    self.rightEdge = True
+    self.progCount = 0
+    self.carFound = False
   def callback(self,data):
     try:
       cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
     except CvBridgeError as e:
       print(e)
+
+    self.progCount += 1
 
     lines = find_lines(cv_image)
 
@@ -50,8 +55,12 @@ class edge_following:
     cv2.circle(lines, (setpoint, 680), 30, (100, 100, 100), -1)
     #cv2.imshow("check_node", lines)
     #cv2.imshow("reg_cam",cv_image)
-    cv2.imshow("car_cam",find_Cars(cv_image))
-    cv2.waitKey(5)
+
+    if(self.progCount%5==0):
+	self.progCount = 0
+    	filteredCar, self.carFound = filter_cars(cv_image)
+    	cv2.imshow("car_cam",filteredCar)
+        cv2.waitKey(5)
 
     if cX1 == 0 or cX2 == 0:
         center_detour = setpoint - cX1 - cX2
@@ -68,7 +77,12 @@ class edge_following:
     else:
         vel_cmd.linear.x = 0.2
         vel_cmd.angular.z = 0
-    #self.vel_pub.publish(vel_cmd)
+
+    if(self.carFound):
+        vel_cmd.linear.x = 0
+        vel_cmd.angular.z = 0.5
+
+    self.vel_pub.publish(vel_cmd)
 
     # lines = hugh_lines(cv_image)
     # lines_edges = cv2.addWeighted(cv_image, 0.3, lines, 1, 0)
@@ -76,8 +90,8 @@ class edge_following:
     # cv2.waitKey(5)
 
 def main(args):
-  edgeFollower = edge_following()
   rospy.init_node('edge_following', anonymous=True)
+  edgeFollower = edge_following()
   try:
     rospy.spin()
   except KeyboardInterrupt:

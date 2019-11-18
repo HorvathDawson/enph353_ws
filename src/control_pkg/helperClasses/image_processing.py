@@ -80,3 +80,29 @@ def COM(im):
         cX = 0
         cY = 0
     return cX, cY
+def filter_cars(im):
+    bwimg = find_Cars(im)
+    carFound = False
+    cv2MajorVersion = cv2.__version__.split(".")[0]
+    # check for contours on thresh
+    if int(cv2MajorVersion) == 4:
+        ctrs, hier = cv2.findContours(bwimg.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    else:
+	im2, ctrs, hier = cv2.findContours(bwimg.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # sort contours
+    sorted_ctrs = sorted(ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
+
+    im = im.copy()
+
+    for i, ctr in enumerate(sorted_ctrs):
+        # Get bounding box
+        x, y, w, h = cv2.boundingRect(ctr)
+        b = np.array([[w * h, x, y, w, h]])
+	if(w*h > ((1200*700)/13)):
+	    carFound = True
+            cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
+        
+    return im,carFound
+
+
