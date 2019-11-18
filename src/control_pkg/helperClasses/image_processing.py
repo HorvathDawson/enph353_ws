@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from datetime import datetime
 
 def find_lines(im):
     gray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
@@ -11,6 +12,13 @@ def find_lines(im):
     processed = cv2.dilate(processed, kernel, iterations=2)
     processed = cv2.erode(processed, kernel, iterations=2)
     return processed
+
+def find_Red(im):
+    hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+    lower = np.array([0, 50, 50])
+    upper = np.array([5, 255, 255])
+    mask = cv2.inRange(hsv, lower, upper)
+    return mask
 
 def find_Cars(im):
     hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
@@ -99,9 +107,11 @@ def filter_cars(im):
         # Get bounding box
         x, y, w, h = cv2.boundingRect(ctr)
         b = np.array([[w * h, x, y, w, h]])
-	if(w*h > ((1200*700)/13)):
+	if((w*h > ((1200*700)/16))):
 	    carFound = True
             cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
+	    imCrop = im[y:y+h,x:x+w]
+            cv2.imwrite("/home/bhux/enph353_ws/src/control_pkg/helperClasses/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
         
     return im,carFound
 
