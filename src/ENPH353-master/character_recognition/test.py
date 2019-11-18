@@ -54,9 +54,9 @@ files_txt = [i for i in files if i.endswith('.png')]
 #     cv2.imshow('here', im)
 #     cv2.waitKey(0)
 
-model.randomImgs()
-# model.trainModel()
+# model.randomImgs()
+model.trainModel()
 
-# model.trainModel()
-# model.trainModel()
-# model.saveWeights()
+model.trainModel()
+model.trainModel()
+model.saveWeights()

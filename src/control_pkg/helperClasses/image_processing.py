@@ -36,9 +36,9 @@ def find_Grass(im):
     upper = np.array([75, 255, 255])
     mask = cv2.inRange(hsv, lower, upper)
     kernel = np.ones((5, 5), np.uint8)
-    processed = cv2.dilate(mask, kernel, iterations=2)
-    processed = cv2.erode(mask, kernel, iterations=2)
-    return processed
+    mask = cv2.dilate(mask, kernel, iterations=2)
+    mask = cv2.erode(mask, kernel, iterations=2)
+    return mask
 
 def find_roads(im):
     hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
@@ -112,7 +112,5 @@ def filter_cars(im):
             cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
 	    imCrop = im[y:y+h,x:x+w]
             cv2.imwrite("/home/bhux/enph353_ws/src/control_pkg/helperClasses/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
-        
+
     return im,carFound
-
-
