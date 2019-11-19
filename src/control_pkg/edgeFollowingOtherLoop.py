@@ -32,9 +32,6 @@ class edge_following:
 	self.q = deque([],maxlen=3)
 	self.waitForPed = False
 	self.x_cur,self.y_cur,self.w_cur,self.h_cur = 0,0,0,0
-	self.pedFound = False
-	self.frameCounter = 0
-	self.crossingCount = 0
 
   def callback(self,data):
 	try:
@@ -75,25 +72,22 @@ class edge_following:
 		center_detour = setpoint - (cX1 + cX2)/2
 
 	vel_cmd = Twist()
-	if center_detour > 50:  # LEFT
+	if center_detour > 30:  # LEFT
 		vel_cmd.linear.x = 0.0
 		vel_cmd.angular.z = 0.5
-	elif center_detour < -50:  # RIGHT
+	elif center_detour < -30:  # RIGHT
 		vel_cmd.linear.x = 0.0
 		vel_cmd.angular.z = -0.5
 	else:
 		vel_cmd.linear.x = 0.2
 		vel_cmd.angular.z = 0	
 
-	if(((np.sum(find_Red(redRegion))>0) or self.waitForPed)):
+	if((np.sum(find_Red(redRegion))>0) or self.waitForPed):
 		vel_cmd.linear.x = 0
 		vel_cmd.angular.z = 0 
 		self.vel_pub.publish(vel_cmd)
 
-		print("ye")
-
 		if(self.waitForPed == False):
-			self.frameCounter = 0
 			self.waitForPed = True
 
 		self.q.append(cv_image)
@@ -129,26 +123,13 @@ class edge_following:
 
 			color = (0,255,0) #green
 			if((w*h > (1200*700)/150) and ((w*h)<(1200*700/5))):
-				self.frameCounter += 1
-				if(self.frameCounter>10):
-					self.pedFound = True
 				self.x_cur,self.y_cur,self.w_cur,self.h_cur = x, y, w, h
 				color = (0,0,255) #red
-			else:
-				if(self.pedFound):
-					self.crossingCount += 1
-					self.pedFound = False
-					self.waitForPed = False
-					self.frameCounter = 0
-					vel_cmd.linear.x = 0.5
-					vel_cmd.angular.z = 0 
-					self.vel_pub.publish(vel_cmd)
-					time.sleep(1.4)
-
 
 			cv2.rectangle(cv_image,(self.x_cur,int(0.97*self.y_cur)),(self.x_cur+self.w_cur,int((0.97)*(self.y_cur+self.h_cur))),color,2)
 
 			cv2.imshow("ye",cv_image)
+
 
 
 

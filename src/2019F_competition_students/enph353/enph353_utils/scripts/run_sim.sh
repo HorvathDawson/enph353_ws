@@ -1,7 +1,7 @@
 #!/bin/bash
 
 spawn_vehicles='false'
-spawn_pedestrians='false'
+spawn_pedestrians='true'
 generate_plates='false'
 label_plates='false'
 
