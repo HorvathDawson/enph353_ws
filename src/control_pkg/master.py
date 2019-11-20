@@ -23,23 +23,25 @@ class Master():
 	def __init__(self):
 		print("Initializing")
 
-		#
+		#Create subscriber nodes for master class
 		rospy.Subscriber("/R1/pi_camera/image_raw",Image,self.camera_callback,queue_size=1)
 		rospy.Subscriber("/Navigation",Int8,self.navigation_callback,queue_size=1)
+		rospy.Subscriber("/imProcessing",Bool,self.imProcessing_callback,queue_size=1)
 
 		#Set member variables
 		self.vel_pub = rospy.Publisher('/R1/skid_vel', Twist, queue_size=1)
+
 		self.navigationSelect = rospy.Publisher('/Navigation',Int8,queue_size=1)
-		self.navigationSelect.publish(1)
+
+		self.imProcess = rospy.Publisher('/imProcessing',Bool,queue_size=1)
+
 		self.bridge = CvBridge()
+
 		self.lines = None
 		self.rightEdge = True
 		self.hysteresisSize = 30
 		
-
 	def navigation_callback(self,selectNav):
-		print("ye")
-
 		if(self.lines is None):
 			pass
 
@@ -80,6 +82,9 @@ class Master():
 		cv2.imshow("camera",self.lines)
 		cv2.waitKey(5)
 
+	def imProcessing_callback(self,process):
+		print("Processing")
+
 
 	def camera_callback(self,data):
 		try:
@@ -89,9 +94,12 @@ class Master():
 
 		self.lines = find_lines(cv_image)
 		self.navigationSelect.publish(1)
+		self.imProcess.publish(True)
+
+
 
 def main():
-	rospy.init_node('control_master',anonymous=True)
+	rospy.init_node('Master',anonymous=True)
 
 	master = Master()
 
