@@ -68,7 +68,7 @@ class Master():
         self.Navigation = False
 
         # globals
-        self.rightEdge = True
+        self.rightEdge = False
         self.hysteresisSize = 40
         self.pedestrian_buffer = 0
         self.safeToGo = False
@@ -94,7 +94,7 @@ class Master():
             edge_1[:, :500] = 0
             edge_2[:, :500] = 0
         else:
-            setpoint = 250
+            setpoint = 100
             edge_1[:, 700:] = 0
             edge_2[:, 700:] = 0
         cX1, cY1 = COM(edge_1)
@@ -148,6 +148,7 @@ class Master():
             self.seeRed = False
         self.boundedImage, self.seeCar = filter_cars(self.boundedImage)
         if self.seeCar:
+            self.rightEdge = True
             self.blindToRed = False
 
     def findLicense_callback(self, isRunning):
