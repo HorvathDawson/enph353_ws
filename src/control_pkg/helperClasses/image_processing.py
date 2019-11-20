@@ -21,7 +21,9 @@ def find_Red(im):
     return mask
 
 def find_Cars(im):
+    img = im[:,600:].copy()
     hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+
     lower = np.array([118, 50, 50])
     upper = np.array([130, 255, 255])
     kernel = np.ones((20, 20), np.uint8)
@@ -112,5 +114,5 @@ def filter_cars(im):
         cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
 	    # imCrop = im[y:y+h,x:x+w]
         # cv2.imwrite("/home/bhux/enph353_ws/src/control_pkg/helperClasses/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
-        
+
     return im,carFound

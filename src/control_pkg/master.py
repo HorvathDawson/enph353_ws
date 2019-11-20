@@ -101,6 +101,7 @@ class Master():
         if not isNavigating.data:
             vel_cmd.linear.x = 0.0
             vel_cmd.angular.z = 0.0
+
         if isNavigating.data and self.onCrosswalk:
             vel_cmd.linear.x = 0.5
             vel_cmd.angular.z = 0.0
@@ -122,10 +123,12 @@ class Master():
             self.blindToRed = False
 
     def pedestrian_callback(self, ifRed):
-
+        print("oncrosswalk: " + str(self.onCrosswalk) +
+              "  blind to red:  " + str(self.blindToRed))
         if self.onCrosswalk:
             # do actions to deal with it
             self.pedestrian_buffer += 1
+            self.blindToRed = True
             if self.seePedestrian or self.pedestrian_buffer < 100:
                 self.q.append(self.cv_image)
                 if(len(self.q) == self.q.maxlen):
@@ -158,25 +161,23 @@ class Master():
                         x, y, w, h = 0, 0, 0, 0
                         self.seePedestrian = False
 
-            elif self.onCrosswalk and not np.sum(self.lines[-250:-1, 550:650]):
-                self.onCrosswalk = False
-                self.blindToRed = False
-                self.Navigation = True
+            elif self.onCrosswalk and not (np.sum(self.lines[-250:-1, 550:650]) or self.seeRed):
+                self.onCrosswalk=False
+                self.Navigation=True
             else:
-                self.Navigation = True
+                self.Navigation=True
 
-        elif ifRed.data:
-            self.Navigation = False
-            if not self.blindToRed:
-                self.onCrosswalk = True
-            self.seePedestrian = True
+        elif ifRed.data and not self.blindToRed:
+            self.Navigation=False
+            self.onCrosswalk=True
+            self.seePedestrian=True
         else:
-            self.pedestrian_buffer = 0
-            self.Navigation = True
+            self.pedestrian_buffer=0
+            self.Navigation=True
 
     def camera_callback(self, data):
         try:
-            self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            self.cv_image=self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
 
@@ -186,9 +187,9 @@ class Master():
 
 
 def main():
-    rospy.init_node('Master', anonymous=True)
+    rospy.init_node('Master', anonymous = True)
 
-    master = Master()
+    master=Master()
 
     rospy.spin()
 
