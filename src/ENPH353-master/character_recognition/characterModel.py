@@ -140,12 +140,6 @@ class CharacterModel:
 
     def predict(self, np_image):
         np_image = transform.resize(np_image, self.input_shape)
-
-        # plt.imshow(np_image)
-        # plt.show()
-        # cv2.imshow('image for predicition', np_image)
-        # cv2.waitKey(2000)
-
         np_image = np.expand_dims(np_image, axis=0)
         predicted_class_indices = np.argmax(
             self.model.predict(np_image), axis=1)
@@ -166,13 +160,6 @@ class CharacterModel:
             epochs=1,
             validation_data=self.validation_generator,
             validation_steps=100)
-        # plt.plot(history_conv.history['loss'])
-        # plt.plot(history_conv.history['val_loss'])
-        # plt.title('model loss')
-        # plt.ylabel('loss')
-        # plt.xlabel('epoch')
-        # plt.legend(['train loss', 'val loss'], loc='upper left')
-        # plt.show()
         test_loss, test_acc = self.model.evaluate(
             self.validation_generator, verbose=2)
         print(test_acc)
