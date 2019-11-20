@@ -8,7 +8,7 @@ from character_recognition import characterModel
 import os
 from collections import Counter
 
-TEAM_ID = "BITCHING"
+TEAM_ID = "8"
 TEAM_PASS = "*******"
 
 model = characterModel.CharacterModel()
