@@ -44,4 +44,5 @@ def ParseCarImage(path = 'licensePlateImages/'):
             plate = strs[i][0]
             licensePlates.append(TEAM_ID +"," + TEAM_PASS + "," + str(i) + "," + plate)
     return licensePlates
-ParseCarImage()
+
+print(ParseCarImage())
