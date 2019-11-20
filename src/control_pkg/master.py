@@ -34,7 +34,7 @@ class Master():
                          self.pedestrian_callback, queue_size=1)
 
         # Set member variables
-        self.vel_pub = rospy.Publisher('/R1/skid_vel', Twist, queue_size=1)
+        self.vel_pub = rospy.Publisher('R1/cmd_vel', Twist, queue_size=10)
         self.nav_pub = rospy.Publisher('/navigation', Bool, queue_size=1)
         self.improcess_pub = rospy.Publisher(
             '/imProcessing', Bool, queue_size=1)
@@ -59,17 +59,22 @@ class Master():
 
         # globals
         self.rightEdge = True
-        self.hysteresisSize = 30
+        self.hysteresisSize = 40
         self.pedestrian_buffer = 0
+<<<<<<< HEAD
         self.safeToGo = False
         self.frameCounter = 0
 
         self.x_cur,self.y_cur,self.w_cur,self.h_cur = 0,0,0,0
+=======
+        self.speedReductionTimer = 0
+>>>>>>> 982295a4963dabb0e65d5546f21d924cc0274a74
 
         self.q = deque([], maxlen=3)
         self.x_cur, self.y_cur, self.w_cur, self.h_cur = 0, 0, 0, 0
 
     def navigation_callback(self, isNavigating):
+        self.speedReductionTimer += 1
         if(self.lines is None):
             return
         edge_1 = self.lines[-60:-40, :].copy()
@@ -93,15 +98,22 @@ class Master():
             center_detour = setpoint - (cX1 + cX2) / 2
 
         if center_detour > self.hysteresisSize:  # LEFT
-            vel_cmd.linear.x = 0.0
-            vel_cmd.angular.z = 0.5
+            if self.speedReductionTimer % 2 == 0:
+                vel_cmd.linear.x = 0.0
+                vel_cmd.angular.z = 0.0
+            else:
+                vel_cmd.linear.x = 0.0
+                vel_cmd.angular.z = 0.5
         elif center_detour < -1 * self.hysteresisSize:  # RIGHT
-            vel_cmd.linear.x = 0.0
-            vel_cmd.angular.z = -0.5
+            if self.speedReductionTimer % 2 == 0:
+                vel_cmd.linear.x = 0.0
+                vel_cmd.angular.z = 0.0
+            else:
+                vel_cmd.linear.x = 0.0
+                vel_cmd.angular.z = -0.5
         else:
             vel_cmd.linear.x = 0.3
             vel_cmd.angular.z = 0
-
         if not isNavigating.data:
             vel_cmd.linear.x = 0.0
             vel_cmd.angular.z = 0.0
@@ -112,9 +124,12 @@ class Master():
 
         self.vel_pub.publish(vel_cmd)
 
+<<<<<<< HEAD
         cv2.imshow("camera", self.boundedImage)
         cv2.waitKey(5)
 
+=======
+>>>>>>> 982295a4963dabb0e65d5546f21d924cc0274a74
     def imProcessing_callback(self, process):
         self.boundedImage = self.cv_image
         self.lines = find_lines(self.cv_image)
@@ -127,11 +142,16 @@ class Master():
             self.blindToRed = False
 
     def pedestrian_callback(self, ifRed):
+<<<<<<< HEAD
+=======
+        # print("oncrosswalk: " + str(self.onCrosswalk) +
+        #       "  blind to red:  " + str(self.blindToRed))
+>>>>>>> 982295a4963dabb0e65d5546f21d924cc0274a74
         if self.onCrosswalk:
             # do actions to deal with it
             self.pedestrian_buffer += 1
             self.blindToRed = True
-            if self.seePedestrian or self.pedestrian_buffer < 100:
+            if self.seePedestrian or self.pedestrian_buffer < 50:
                 self.q.append(self.cv_image)
                 if(len(self.q) == self.q.maxlen):
                     w = 0
@@ -162,7 +182,14 @@ class Master():
                     else:
                         x, y, w, h = 0, 0, 0, 0
                         self.seePedestrian = False
+                    self.boundedImage = self.boundedImage.copy()
 
+                    color = (0,255,0) #green
+                    if((w*h > (1200*700)/150) and ((w*h)<(1200*700/5))):
+                        self.x_cur,self.y_cur,self.w_cur,self.h_cur = x, y, w, h
+                        color = (0,0,255) #red
+
+<<<<<<< HEAD
                     self.boundedImage = self.boundedImage.copy()
 
                     color = (0,255,0) #green
@@ -173,6 +200,11 @@ class Master():
                     cv2.rectangle(self.boundedImage,(self.x_cur,int(0.97*self.y_cur)),(self.x_cur+self.w_cur,int((0.97)*(self.y_cur+self.h_cur))),color,2)
 
             elif self.onCrosswalk and not (np.sum(self.lines[-250:-1, 550:650]) or self.seeRed):
+=======
+                    cv2.rectangle(self.boundedImage,(self.x_cur,int(0.97*self.y_cur)),(self.x_cur+self.w_cur,int((0.97)*(self.y_cur+self.h_cur))),color,2)
+
+            elif self.onCrosswalk and not np.sum(self.lines[-250:-1, 550:650]):
+>>>>>>> 982295a4963dabb0e65d5546f21d924cc0274a74
                 self.onCrosswalk=False
                 self.Navigation=True
             else:
@@ -185,6 +217,10 @@ class Master():
         else:
             self.pedestrian_buffer=0
             self.Navigation=True
+
+        if self.boundedImage is not None:
+            cv2.imshow("camera", self.boundedImage)
+            cv2.waitKey(5)
 
     def camera_callback(self, data):
         try:
