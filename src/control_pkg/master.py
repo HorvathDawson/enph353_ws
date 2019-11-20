@@ -36,8 +36,10 @@ class Master():
         # Set member variables
         self.vel_pub = rospy.Publisher('/R1/skid_vel', Twist, queue_size=1)
         self.nav_pub = rospy.Publisher('/navigation', Bool, queue_size=1)
-        self.improcess_pub = rospy.Publisher('/imProcessing', Bool, queue_size=1)
-        self.pedestrian_pub = rospy.Publisher('/pedestrian', Bool, queue_size=1)
+        self.improcess_pub = rospy.Publisher(
+            '/imProcessing', Bool, queue_size=1)
+        self.pedestrian_pub = rospy.Publisher(
+            '/pedestrian', Bool, queue_size=1)
 
         self.bridge = CvBridge()
 
@@ -49,6 +51,8 @@ class Master():
         self.seeRed = False
         self.seePedestrian = False
         self.seeCar = False
+        self.onCrosswalk = False
+        self.blindToRed = False
 
         # action
         self.Navigation = False
@@ -56,6 +60,10 @@ class Master():
         # globals
         self.rightEdge = True
         self.hysteresisSize = 30
+        self.pedestrian_buffer = 0
+
+        self.q = deque([], maxlen=3)
+        self.x_cur, self.y_cur, self.w_cur, self.h_cur = 0, 0, 0, 0
 
     def navigation_callback(self, isNavigating):
         if(self.lines is None):
@@ -93,6 +101,9 @@ class Master():
         if not isNavigating.data:
             vel_cmd.linear.x = 0.0
             vel_cmd.angular.z = 0.0
+        if isNavigating.data and self.onCrosswalk:
+            vel_cmd.linear.x = 0.5
+            vel_cmd.angular.z = 0.0
 
         self.vel_pub.publish(vel_cmd)
 
@@ -107,12 +118,61 @@ class Master():
         else:
             self.seeRed = False
         self.boundedImage, self.seeCar = filter_cars(self.boundedImage)
+        if self.seeCar:
+            self.blindToRed = False
 
     def pedestrian_callback(self, ifRed):
-		if(ifRed.data):
-			self.Navigation = False
-		else:
-			self.Navigation = True
+
+        if self.onCrosswalk:
+            # do actions to deal with it
+            self.pedestrian_buffer += 1
+            if self.seePedestrian or self.pedestrian_buffer < 100:
+                self.q.append(self.cv_image)
+                if(len(self.q) == self.q.maxlen):
+                    w = 0
+                    h = 0
+
+                    background = cv2.cvtColor(self.q[0], cv2.COLOR_BGR2GRAY)
+                    background = cv2.GaussianBlur(background, (21, 21), 0)
+
+                    liveFeed = cv2.cvtColor(self.q[-1], cv2.COLOR_BGR2GRAY)
+                    liveFeed = cv2.GaussianBlur(liveFeed, (21, 21), 0)
+
+                    frameDelta = cv2.absdiff(background, liveFeed)
+                    thresh = cv2.threshold(
+                        frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
+
+                    kernel = np.ones((4, 3), dtype=np.uint8)
+                    thresh = cv2.dilate(thresh, kernel, iterations=12)
+
+                    ctrs, hier = cv2.findContours(
+                        thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    ctrs = sorted(
+                        ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
+
+                    if(len(ctrs) != 0):
+                        ctr = ctrs[-1]
+                        x, y, w, h = cv2.boundingRect(ctr)
+                        self.seePedestrian = True
+                    else:
+                        x, y, w, h = 0, 0, 0, 0
+                        self.seePedestrian = False
+
+            elif self.onCrosswalk and not np.sum(self.lines[-250:-1, 550:650]):
+                self.onCrosswalk = False
+                self.blindToRed = False
+                self.Navigation = True
+            else:
+                self.Navigation = True
+
+        elif ifRed.data:
+            self.Navigation = False
+            if not self.blindToRed:
+                self.onCrosswalk = True
+            self.seePedestrian = True
+        else:
+            self.pedestrian_buffer = 0
+            self.Navigation = True
 
     def camera_callback(self, data):
         try:
