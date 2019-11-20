@@ -61,6 +61,10 @@ class Master():
         self.rightEdge = True
         self.hysteresisSize = 30
         self.pedestrian_buffer = 0
+        self.safeToGo = False
+        self.frameCounter = 0
+
+        self.x_cur,self.y_cur,self.w_cur,self.h_cur = 0,0,0,0
 
         self.q = deque([], maxlen=3)
         self.x_cur, self.y_cur, self.w_cur, self.h_cur = 0, 0, 0, 0
@@ -95,7 +99,7 @@ class Master():
             vel_cmd.linear.x = 0.0
             vel_cmd.angular.z = -0.5
         else:
-            vel_cmd.linear.x = 0.2
+            vel_cmd.linear.x = 0.3
             vel_cmd.angular.z = 0
 
         if not isNavigating.data:
@@ -108,7 +112,7 @@ class Master():
 
         self.vel_pub.publish(vel_cmd)
 
-        cv2.imshow("camera", self.lines)
+        cv2.imshow("camera", self.boundedImage)
         cv2.waitKey(5)
 
     def imProcessing_callback(self, process):
@@ -123,8 +127,6 @@ class Master():
             self.blindToRed = False
 
     def pedestrian_callback(self, ifRed):
-        print("oncrosswalk: " + str(self.onCrosswalk) +
-              "  blind to red:  " + str(self.blindToRed))
         if self.onCrosswalk:
             # do actions to deal with it
             self.pedestrian_buffer += 1
@@ -148,7 +150,7 @@ class Master():
                     kernel = np.ones((4, 3), dtype=np.uint8)
                     thresh = cv2.dilate(thresh, kernel, iterations=12)
 
-                    ctrs, hier = cv2.findContours(
+                    im2, ctrs, hier = cv2.findContours(
                         thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                     ctrs = sorted(
                         ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
@@ -160,6 +162,15 @@ class Master():
                     else:
                         x, y, w, h = 0, 0, 0, 0
                         self.seePedestrian = False
+
+                    self.boundedImage = self.boundedImage.copy()
+
+                    color = (0,255,0) #green
+                    if((w*h > (1200*700)/150) and ((w*h)<(1200*700/5))):
+                        self.x_cur,self.y_cur,self.w_cur,self.h_cur = x, y, w, h
+                        color = (0,0,255) #red
+
+                    cv2.rectangle(self.boundedImage,(self.x_cur,int(0.97*self.y_cur)),(self.x_cur+self.w_cur,int((0.97)*(self.y_cur+self.h_cur))),color,2)
 
             elif self.onCrosswalk and not (np.sum(self.lines[-250:-1, 550:650]) or self.seeRed):
                 self.onCrosswalk=False
