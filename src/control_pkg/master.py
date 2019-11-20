@@ -61,14 +61,11 @@ class Master():
         self.rightEdge = True
         self.hysteresisSize = 40
         self.pedestrian_buffer = 0
-<<<<<<< HEAD
         self.safeToGo = False
         self.frameCounter = 0
 
         self.x_cur,self.y_cur,self.w_cur,self.h_cur = 0,0,0,0
-=======
         self.speedReductionTimer = 0
->>>>>>> 982295a4963dabb0e65d5546f21d924cc0274a74
 
         self.q = deque([], maxlen=3)
         self.x_cur, self.y_cur, self.w_cur, self.h_cur = 0, 0, 0, 0
@@ -124,12 +121,9 @@ class Master():
 
         self.vel_pub.publish(vel_cmd)
 
-<<<<<<< HEAD
         cv2.imshow("camera", self.boundedImage)
         cv2.waitKey(5)
 
-=======
->>>>>>> 982295a4963dabb0e65d5546f21d924cc0274a74
     def imProcessing_callback(self, process):
         self.boundedImage = self.cv_image
         self.lines = find_lines(self.cv_image)
@@ -142,11 +136,6 @@ class Master():
             self.blindToRed = False
 
     def pedestrian_callback(self, ifRed):
-<<<<<<< HEAD
-=======
-        # print("oncrosswalk: " + str(self.onCrosswalk) +
-        #       "  blind to red:  " + str(self.blindToRed))
->>>>>>> 982295a4963dabb0e65d5546f21d924cc0274a74
         if self.onCrosswalk:
             # do actions to deal with it
             self.pedestrian_buffer += 1
@@ -189,7 +178,6 @@ class Master():
                         self.x_cur,self.y_cur,self.w_cur,self.h_cur = x, y, w, h
                         color = (0,0,255) #red
 
-<<<<<<< HEAD
                     self.boundedImage = self.boundedImage.copy()
 
                     color = (0,255,0) #green
@@ -200,11 +188,9 @@ class Master():
                     cv2.rectangle(self.boundedImage,(self.x_cur,int(0.97*self.y_cur)),(self.x_cur+self.w_cur,int((0.97)*(self.y_cur+self.h_cur))),color,2)
 
             elif self.onCrosswalk and not (np.sum(self.lines[-250:-1, 550:650]) or self.seeRed):
-=======
                     cv2.rectangle(self.boundedImage,(self.x_cur,int(0.97*self.y_cur)),(self.x_cur+self.w_cur,int((0.97)*(self.y_cur+self.h_cur))),color,2)
 
             elif self.onCrosswalk and not np.sum(self.lines[-250:-1, 550:650]):
->>>>>>> 982295a4963dabb0e65d5546f21d924cc0274a74
                 self.onCrosswalk=False
                 self.Navigation=True
             else:
