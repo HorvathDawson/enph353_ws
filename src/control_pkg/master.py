@@ -26,16 +26,16 @@ class Master():
         # Create subscriber nodes for master class
         rospy.Subscriber("/R1/pi_camera/image_raw", Image,
                          self.camera_callback, queue_size=1)
-        rospy.Subscriber("/navigation", Int8,
+        rospy.Subscriber("/navigation", Bool,
                          self.navigation_callback, queue_size=1)
         rospy.Subscriber("/imProcessing", Bool,
                          self.imProcessing_callback, queue_size=1)
         rospy.Subscriber("/pedestrian", Bool,
-                         self.imProcessing_callback, queue_size=1)
+                         self.pedestrian_callback, queue_size=1)
 
         # Set member variables
         self.vel_pub = rospy.Publisher('/R1/skid_vel', Twist, queue_size=1)
-        self.nav_pub = rospy.Publisher('/navigation', Int8, queue_size=1)
+        self.nav_pub = rospy.Publisher('/navigation', Bool, queue_size=1)
         self.improcess_pub = rospy.Publisher('/imProcessing', Bool, queue_size=1)
         self.pedestrian_pub = rospy.Publisher('/pedestrian', Bool, queue_size=1)
 
@@ -51,46 +51,46 @@ class Master():
         self.seeCar = False
 
         # action
-        self.Navigation = 0
+        self.Navigation = False
 
         # globals
         self.rightEdge = True
         self.hysteresisSize = 30
 
-    def navigation_callback(self, selectNav):
+    def navigation_callback(self, isNavigating):
         if(self.lines is None):
             return
         edge_1 = self.lines[-60:-40, :].copy()
         edge_2 = self.lines[-150:-130, :].copy()
         vel_cmd = Twist()
-        if selectNav != 0:
-            setpoint = 625
-            if selectNav == 1:
-                setpoint = 950
-                edge_1[:, :500] = 0
-                edge_2[:, :500] = 0
-            elif selectNav == 2:
-                setpoint = 250
-                edge_1[:, 700:] = 0
-                edge_2[:, 700:] = 0
-            cX1, cY1 = COM(edge_1)
-            cX2, cY2 = COM(edge_2)
 
-            if cX1 == 0 or cX2 == 0:
-                center_detour = setpoint - cX1 - cX2
-            else:
-                center_detour = setpoint - (cX1 + cX2) / 2
-
-            if center_detour > self.hysteresisSize:  # LEFT
-                vel_cmd.linear.x = 0.0
-                vel_cmd.angular.z = 0.5
-            elif center_detour < -1 * self.hysteresisSize:  # RIGHT
-                vel_cmd.linear.x = 0.0
-                vel_cmd.angular.z = -0.5
-            else:
-                vel_cmd.linear.x = 0.2
-                vel_cmd.angular.z = 0
+        if self.rightEdge == True:
+            setpoint = 950
+            edge_1[:, :500] = 0
+            edge_2[:, :500] = 0
         else:
+            setpoint = 250
+            edge_1[:, 700:] = 0
+            edge_2[:, 700:] = 0
+        cX1, cY1 = COM(edge_1)
+        cX2, cY2 = COM(edge_2)
+
+        if cX1 == 0 or cX2 == 0:
+            center_detour = setpoint - cX1 - cX2
+        else:
+            center_detour = setpoint - (cX1 + cX2) / 2
+
+        if center_detour > self.hysteresisSize:  # LEFT
+            vel_cmd.linear.x = 0.0
+            vel_cmd.angular.z = 0.5
+        elif center_detour < -1 * self.hysteresisSize:  # RIGHT
+            vel_cmd.linear.x = 0.0
+            vel_cmd.angular.z = -0.5
+        else:
+            vel_cmd.linear.x = 0.2
+            vel_cmd.angular.z = 0
+
+        if not isNavigating.data:
             vel_cmd.linear.x = 0.0
             vel_cmd.angular.z = 0.0
 
@@ -102,19 +102,17 @@ class Master():
     def imProcessing_callback(self, process):
         self.boundedImage = self.cv_image
         self.lines = find_lines(self.cv_image)
-        if(np.sum(find_Red(self.cv_image[-150:-1, 300:500].copy())) == 0):
-            self.seeRed = False
-        else:
+        if(np.sum(find_Red(self.cv_image[-150:-1, 300:500].copy())) > 200):
             self.seeRed = True
+        else:
+            self.seeRed = False
         self.boundedImage, self.seeCar = filter_cars(self.boundedImage)
 
     def pedestrian_callback(self, ifRed):
-		print("ye")
-
-		if(ifRed):
-			self.Navigation = 0
+		if(ifRed.data):
+			self.Navigation = False
 		else:
-			self.Navigation = 1
+			self.Navigation = True
 
     def camera_callback(self, data):
         try:
@@ -124,7 +122,6 @@ class Master():
 
         self.pedestrian_pub.publish(self.seeRed)
         self.improcess_pub.publish(True)
-
         self.nav_pub.publish(self.Navigation)
 
 
