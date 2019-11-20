@@ -20,7 +20,12 @@ def extract_rect(im):
     mask = cv2.erode(mask, kernel, iterations=4)
     thresh = mask.copy()
 
-    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cv2MajorVersion = cv2.__version__.split(".")[0]
+    if int(cv2MajorVersion) == 4:
+        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    else:
+        im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
 
     # finding contour with max area
     largest = None

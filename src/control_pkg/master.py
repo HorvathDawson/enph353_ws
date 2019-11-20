@@ -157,8 +157,14 @@ class Master():
                     kernel = np.ones((4, 3), dtype=np.uint8)
                     thresh = cv2.dilate(thresh, kernel, iterations=12)
 
-                    im2, ctrs, hier = cv2.findContours(
-                        thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    cv2MajorVersion = cv2.__version__.split(".")[0]
+                    if int(cv2MajorVersion) == 4:
+                        ctrs, hier = cv2.findContours(
+                            thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    else:
+                        im2, ctrs, hier = cv2.findContours(
+                            thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
                     ctrs = sorted(
                         ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
 
