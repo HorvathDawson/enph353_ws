@@ -129,7 +129,7 @@ class edge_following:
 
 
 			color = (0,255,0) #green
-			if((w*h > (1200*700)/150) and ((w*h)<(1200*700/5))):
+			if((w*h > (1200*700)/150) and ((w*h)<(1200*700/5)) and (abs(w-600) < 500) and (abs(h-350) < 150):
 				self.frameCounter += 1
 				if(self.frameCounter>10):
 					self.pedFound = True

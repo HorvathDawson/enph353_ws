@@ -54,6 +54,8 @@ class Master():
         self.seeCar = False
         self.onCrosswalk = False
         self.blindToRed = False
+        self.frameCounter = 0
+        self.frameCountReached = False
 
         # action
         self.Navigation = False
@@ -163,16 +165,24 @@ class Master():
                     if(len(ctrs) != 0):
                         ctr = ctrs[-1]
                         x, y, w, h = cv2.boundingRect(ctr)
-                        self.seePedestrian = True
                     else:
                         x, y, w, h = 0, 0, 0, 0
-                        self.seePedestrian = False
+
                     self.boundedImage = self.boundedImage.copy()
 
                     color = (0,255,0) #green
-                    if((w*h > (1200*700)/150) and ((w*h)<(1200*700/5))):
+                    if((w*h > (1200*700)/150) and ((w*h)<(1200*700/5)) and (abs(x+(w/2)-600) < 400) and (abs(y+(h/2)-350) < 250)):
+                        self.seePedestrian = True
+                        self.frameCounter += 1
+                        if(self.frameCounter>15):
+                            self.frameCountReached = True
                         self.x_cur,self.y_cur,self.w_cur,self.h_cur = x, y, w, h
                         color = (0,0,255) #red
+                    else:
+                        if(self.frameCountReached):
+                            self.frameCounter = 0
+                            self.frameCountReached = False
+                            self.seePedestrian = False
 
                     cv2.rectangle(self.boundedImage,(self.x_cur,int(0.97*self.y_cur)),(self.x_cur+self.w_cur,int((0.97)*(self.y_cur+self.h_cur))),color,2)
 

@@ -113,7 +113,8 @@ def filter_cars(im):
     	    carFound = True
             cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
 
-	    imCrop = im[y:y+h,x:x+w]
-        cv2.imwrite("/home/bhux/enph353_ws/src/control_pkg/helperClasses/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
+        #if(im is not None):
+            #imCrop = im[y:y+h,x:x+w]
+            #cv2.imwrite("/home/bhux/enph353_ws/src/control_pkg/helperClasses/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
 
     return im,carFound
