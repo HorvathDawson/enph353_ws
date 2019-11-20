@@ -46,6 +46,7 @@ class Master():
         self.lines = None
         self.cv_image = None
         self.boundedImage = None
+        self.reductionMod = 3
 
         # conditions
         self.seeRed = False
@@ -91,19 +92,19 @@ class Master():
             center_detour = setpoint - (cX1 + cX2) / 2
 
         if center_detour > self.hysteresisSize:  # LEFT
-            if self.speedReductionTimer % 2 == 0:
-                vel_cmd.linear.x = 0.0
-                vel_cmd.angular.z = 0.0
-            else:
+            if self.speedReductionTimer % self.reductionMod == 0:
                 vel_cmd.linear.x = 0.0
                 vel_cmd.angular.z = 0.5
-        elif center_detour < -1 * self.hysteresisSize:  # RIGHT
-            if self.speedReductionTimer % 2 == 0:
-                vel_cmd.linear.x = 0.0
-                vel_cmd.angular.z = 0.0
             else:
                 vel_cmd.linear.x = 0.0
+                vel_cmd.angular.z = 0.0
+        elif center_detour < -1 * self.hysteresisSize:  # RIGHT
+            if self.speedReductionTimer % self.reductionMod == 0:
+                vel_cmd.linear.x = 0.0
                 vel_cmd.angular.z = -0.5
+            else:
+                vel_cmd.linear.x = 0.0
+                vel_cmd.angular.z = 0.0
         else:
             vel_cmd.linear.x = 0.2
             vel_cmd.angular.z = 0
@@ -154,7 +155,7 @@ class Master():
                     kernel = np.ones((4, 3), dtype=np.uint8)
                     thresh = cv2.dilate(thresh, kernel, iterations=12)
 
-                    ctrs, hier = cv2.findContours(
+                    im2, ctrs, hier = cv2.findContours(
                         thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                     ctrs = sorted(
                         ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
