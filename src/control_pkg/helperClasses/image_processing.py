@@ -109,12 +109,12 @@ def filter_cars(im):
         # Get bounding box
         x, y, w, h = cv2.boundingRect(ctr)
         b = np.array([[w * h, x, y, w, h]])
-    	if((w*h > ((1200*700)/12))):
+    	if((w*h > ((1200*700)/14))):
     	    carFound = True
             cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
 
-        #if(im is not None):
-            #imCrop = im[y:y+h,x:x+w]
-            #cv2.imwrite("/home/bhux/enph353_ws/src/control_pkg/helperClasses/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
+            if(im is not None):
+                imCrop = im[y:y+h,x:x+w]
+                cv2.imwrite("/home/bhux/enph353_ws/src/control_pkg/helperClasses/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
 
     return im,carFound
