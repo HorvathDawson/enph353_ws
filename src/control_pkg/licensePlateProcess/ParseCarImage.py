@@ -14,7 +14,7 @@ TEAM_PASS = "*******"
 model = characterModel.CharacterModel()
 model.loadWeights()
 
-def ParseCarImage(path = 'licensePlateImages/'):
+def ParseCarImage(path):
     files = os.listdir(path)
     files_txt = [i for i in files if i.endswith('.png')]
     strs = [[],[],[],[],[],[],[],[],[],[]]
@@ -44,5 +44,3 @@ def ParseCarImage(path = 'licensePlateImages/'):
             plate = strs[i][0]
             licensePlates.append(TEAM_ID +"," + TEAM_PASS + "," + str(i) + "," + plate)
     return licensePlates
-
-print(ParseCarImage())

@@ -16,6 +16,7 @@ import imutils
 from collections import deque
 import time
 from std_msgs.msg import Bool, Int8, Int32, Float64, String
+from licensePlateProcess.ParseCarImage import ParseCarImage
 
 
 class Master():
@@ -31,7 +32,7 @@ class Master():
                          self.imProcessing_callback, queue_size=1)
         rospy.Subscriber("/pedestrian", Bool,
                          self.pedestrian_callback, queue_size=1)
-        rospy.Subscriber("/findLicense", Bool,
+        self.findLicense_sub = rospy.Subscriber("/findLicense", Bool,
                          self.findLicense_callback, queue_size=1)
 
         # Set member variables
@@ -154,7 +155,12 @@ class Master():
     def findLicense_callback(self, isRunning):
         if isRunning.data:
             return
-
+        # path = #path to images
+        # arr = ParseCarImage(path)
+        # for i in range(len(arr)):
+        #     print(arr[i])
+        #     self.license_pub.publish(arr[i])
+        # self.findLicense_sub.unregister()
         print("processinglicense")
 
     def pedestrian_callback(self, isRunning):
@@ -244,7 +250,7 @@ class Master():
         except CvBridgeError as e:
             print(e)
 
-        if self.passedPedestrians > 2 and not self.blindToRed:
+        if self.passedPedestrians > 0 and not self.blindToRed:
             self.Running = False
         self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
