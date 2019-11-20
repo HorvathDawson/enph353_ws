@@ -36,10 +36,8 @@ class Master():
         # Set member variables
         self.vel_pub = rospy.Publisher('/R1/skid_vel', Twist, queue_size=1)
         self.nav_pub = rospy.Publisher('/navigation', Int8, queue_size=1)
-        self.improcess_pub = rospy.Publisher(
-            '/imProcessing', Bool, queue_size=1)
-        self.pedestrian_pub = rospy.Publisher(
-            '/pedestrian', Bool, queue_size=1)
+        self.improcess_pub = rospy.Publisher('/imProcessing', Bool, queue_size=1)
+        self.pedestrian_pub = rospy.Publisher('/pedestrian', Bool, queue_size=1)
 
         self.bridge = CvBridge()
 
@@ -65,7 +63,7 @@ class Master():
         edge_1 = self.lines[-60:-40, :].copy()
         edge_2 = self.lines[-150:-130, :].copy()
         vel_cmd = Twist()
-        if selectNav is not 0:
+        if selectNav != 0:
             setpoint = 625
             if selectNav == 1:
                 setpoint = 950
@@ -111,11 +109,12 @@ class Master():
         self.boundedImage, self.seeCar = filter_cars(self.boundedImage)
 
     def pedestrian_callback(self, ifRed):
-        if(ifRed):
-            self.Navigation = 0
-        else:
-            self.Navigation = 1
-        pass
+		print("ye")
+
+		if(ifRed):
+			self.Navigation = 0
+		else:
+			self.Navigation = 1
 
     def camera_callback(self, data):
         try:
