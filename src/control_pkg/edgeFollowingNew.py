@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from __future__ import print_function
-
 from helperClasses.image_processing import hugh_lines
 from helperClasses.image_processing import find_lines
 from helperClasses.image_processing import find_Cars
@@ -22,11 +21,16 @@ from std_msgs.msg import Bool, Int8, Int32, Float64
 
 class Master():
 	def __init__(self):
-		#Subscribe to all nodes
 		print("Initializing")
+
+		#
+		rospy.Subscriber("/R1/pi_camera/image_raw",Image,self.camera_callback,queue_size=1)
+		rospy.Subscriber("/Navigation",Int8,self.navigation_callback,queue_size=1)
+
 		#Set member variables
-		self.vel_pub = rospy.Publisher('/R1/vel_cmd', Twist, queue_size=1)
-		#self.navigationSelect = rospy.Publisher('NavigationSelect',Int8,queue_size=1)
+		self.vel_pub = rospy.Publisher('/R1/skid_vel', Twist, queue_size=1)
+		self.navigationSelect = rospy.Publisher('/Navigation',Int8,queue_size=1)
+		self.navigationSelect.publish(1)
 		self.bridge = CvBridge()
 		self.lines = None
 		self.rightEdge = True
@@ -34,9 +38,10 @@ class Master():
 
 	def navigation_callback(self,selectNav):
 		print("ye")
+
 		if(self.lines is None):
 			pass
-		print("passed")
+
 		edge_1 = self.lines[-60:-40,:].copy()
 		edge_2 = self.lines[-150:-130,:].copy()
 
@@ -58,6 +63,7 @@ class Master():
 			center_detour = setpoint - (cX1 + cX2)/2
 
 		vel_cmd = Twist()
+		print(center_detour)
 		if center_detour > 50:  # LEFT
 			vel_cmd.linear.x = 0.0
 			vel_cmd.angular.z = 0.5
@@ -70,10 +76,9 @@ class Master():
 
 		self.vel_pub.publish(vel_cmd)	
 
-		cv2.imshow("camera",lines)
+		cv2.imshow("camera",self.lines)
 		cv2.waitKey(5)
 
-		return True
 
 	def camera_callback(self,data):
 		try:
@@ -82,14 +87,12 @@ class Master():
 		  	print(e)
 
 		self.lines = find_lines(cv_image)
+		self.navigationSelect.publish(1)
 
 def main():
 	rospy.init_node('control_master',anonymous=True)
 
 	master = Master()
-
- 	rospy.Subscriber("/R1/pi_camera/image_raw",Image,master.camera_callback,queue_size=1)
-	rospy.Subscriber("Navigation",Bool,master.navigation_callback,queue_size=1)
 
 	rospy.spin()
 
