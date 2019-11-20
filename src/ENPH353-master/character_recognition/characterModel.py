@@ -3,6 +3,7 @@ from PIL import Image
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D
+from keras import optimizers
 from keras.layers import Activation, Dropout, Flatten, Dense
 from keras import backend as K
 import matplotlib.pyplot as plt
@@ -17,8 +18,8 @@ class CharacterModel:
         # dimensions of our images.
         self.img_width, self.img_height = 64, 64
 
-        train_data_dir = 'enph353_cnn_lab/TrainingData2/train'
-        validation_data_dir = 'enph353_cnn_lab/TrainingData2/validation'
+        train_data_dir = '/home/dawson/enph353_ws/src/ENPH353-master/character_recognition/enph353_cnn_lab/TrainingData2/train'
+        validation_data_dir = '/home/dawson/enph353_ws/src/ENPH353-master/character_recognition/enph353_cnn_lab/TrainingData2/validation'
 
         if K.image_data_format() == 'channels_first':
             self.input_shape = (3, self.img_width, self.img_height)
@@ -44,13 +45,16 @@ class CharacterModel:
         self.model.add(Dropout(0.5))
         self.model.add(Dense(36))
         self.model.add(Activation('sigmoid'))
-
-        self.model.compile(loss='binary_crossentropy',
+        # self.model.add(Activation('softmax'))
+        self.model.compile(
                            optimizer='rmsprop',
+                           loss='binary_crossentropy',
+                           # loss='categorical_crossentropy',
+                           # optimizer='adam',
                            metrics=['accuracy'])
         # this is the augmentation configuration we will use for training
         def random_colour(img):
-            blur_value = random.randint(3, 8)
+            blur_value = random.randint(3, 15)
             colour_mode = random.randint(1, 5)
             if colour_mode == 1:
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
@@ -67,7 +71,8 @@ class CharacterModel:
                 img = cv2.blur(img, (blur_value, blur_value))
             return img
         def random_pic(img):
-            blur_value = random.randint(3, 8)
+            blur_value = random.randint(3, 20)
+            # blur_value = 13
             if random.randint(1,4) == 1:
                 gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
                 blur_gray = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -79,7 +84,7 @@ class CharacterModel:
                 h, w = blackAndWhiteImage.shape[:2]
                 mask = np.zeros((h + 2, w + 2), np.uint8)
 
-                # Floodfill
+                # # Floodfill
                 corner = random.randint(1, 3)
                 if random.randint(1, 3) == 1:
                     cv2.floodFill(img, mask, (0, 0), (random.randint(
@@ -93,13 +98,18 @@ class CharacterModel:
                 if random.randint(1, 3) == 1:
                     cv2.floodFill(img, mask, (h - 2, w - 2), (random.randint(
                         1, 255), random.randint(1, 255), random.randint(1, 255)))
-                if random.randint(1,6) > 3:
-                    img = cv2.blur(img, (blur_value, blur_value))
+            if random.randint(1,6) > 2:
+                img = cv2.blur(img, (blur_value, blur_value))
+            else:
+                blr = random.randint(20,100)
+                img = cv2.addWeighted(img, 5, cv2.blur(img, (blr, blr)), -4, 128)
+                img = abs(img)
+
             img = random_colour(img)
             return img
         train_datagen = ImageDataGenerator(
-            rotation_range=40,
-            zoom_range=[0.6, 0.9],
+            rotation_range=25,
+            zoom_range=[0.6, 1.5],
             shear_range=0.2,
             width_shift_range=0.1,
             height_shift_range=0.1,
@@ -134,7 +144,7 @@ class CharacterModel:
         # plt.imshow(np_image)
         # plt.show()
         # cv2.imshow('image for predicition', np_image)
-        # cv2.waitKey(0)
+        # cv2.waitKey(2000)
 
         np_image = np.expand_dims(np_image, axis=0)
         predicted_class_indices = np.argmax(
@@ -144,19 +154,25 @@ class CharacterModel:
         return [labels[k] for k in predicted_class_indices]
 
     def loadWeights(self):
-        self.model.load_weights('weights.h5')
+        self.model.load_weights('/home/dawson/enph353_ws/src/ENPH353-master/character_recognition/weights.h5')
 
     def saveWeights(self):
-        self.model.save_weights('weights.h5')
+        self.model.save_weights('/home/dawson/enph353_ws/src/ENPH353-master/character_recognition/weights.h5')
 
     def trainModel(self):
-        self.model.fit_generator(
+        history_conv = self.model.fit_generator(
             self.train_generator,
             steps_per_epoch=1000,
             epochs=1,
             validation_data=self.validation_generator,
             validation_steps=100)
-
+        # plt.plot(history_conv.history['loss'])
+        # plt.plot(history_conv.history['val_loss'])
+        # plt.title('model loss')
+        # plt.ylabel('loss')
+        # plt.xlabel('epoch')
+        # plt.legend(['train loss', 'val loss'], loc='upper left')
+        # plt.show()
         test_loss, test_acc = self.model.evaluate(
             self.validation_generator, verbose=2)
         print(test_acc)
