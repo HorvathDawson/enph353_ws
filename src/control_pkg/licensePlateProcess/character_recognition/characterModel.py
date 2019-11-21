@@ -143,8 +143,11 @@ class CharacterModel:
     def predict(self, np_image):
         np_image = transform.resize(np_image, self.input_shape)
         np_image = np.expand_dims(np_image, axis=0)
-        predicted_class_indices = np.argmax(
-            self.model.predict(np_image), axis=1)
+        predict = self.model.predict(np_image)
+        k = (predict.copy())[0]
+        largest_ind = np.argpartition(k, -10)[-10:]
+
+        predicted_class_indices = np.argmax(predict, axis=1)
         labels = (self.train_generator.class_indices)
         labels = dict((v, k) for k, v in labels.items())
         return [labels[k] for k in predicted_class_indices]

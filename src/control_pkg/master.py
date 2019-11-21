@@ -96,7 +96,7 @@ class Master():
             edge_1[:, :500] = 0
             edge_2[:, :500] = 0
         else:
-            setpoint = 200
+            setpoint = 125
             edge_1[:, 700:] = 0
             edge_2[:, 700:] = 0
         cX1, cY1 = COM(edge_1)
@@ -260,7 +260,7 @@ class Master():
         except CvBridgeError as e:
             print(e)
 
-        if self.passedPedestrians > -1 and not self.blindToRed:
+        if self.passedPedestrians > 2 and not self.blindToRed:
             self.Running = False
         self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
