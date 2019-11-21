@@ -64,14 +64,19 @@ class Master():
         self.blindToRed = False
         self.frameCounter = 0
         self.frameCountReached = False
+        self.turn = False
 
         # action
         self.Navigation = False
 
         # globals
-        self.rightEdge = True
+        self.rightEdge = False
         self.hysteresisSize = 40
         self.pedestrian_buffer = 0
+        self.safeToGo = False
+        self.frameCounter = 0
+
+        self.x_cur,self.y_cur,self.w_cur,self.h_cur = 0,0,0,0
         self.speedReductionTimer = 0
         self.passedPedestrians = 0
 
@@ -91,7 +96,7 @@ class Master():
             edge_1[:, :500] = 0
             edge_2[:, :500] = 0
         else:
-            setpoint = 250
+            setpoint = 200
             edge_1[:, 700:] = 0
             edge_2[:, 700:] = 0
         cX1, cY1 = COM(edge_1)
@@ -117,8 +122,15 @@ class Master():
                 vel_cmd.linear.x = 0.0
                 vel_cmd.angular.z = 0.0
         else:
-            vel_cmd.linear.x = 0.2
+            vel_cmd.linear.x = 0.3
             vel_cmd.angular.z = 0
+
+        if self.turn:
+            vel_cmd.linear.x = 0.0
+            vel_cmd.angular.z = 0.5
+            self.vel_pub.publish(vel_cmd)
+            time.sleep(0.5)
+            self.turn = False
 
         if not self.Navigation:
             vel_cmd.linear.x = 0.0
@@ -139,20 +151,21 @@ class Master():
             return
         self.boundedImage = self.cv_image
         self.lines = find_lines(self.cv_image)
-        if(np.sum(find_Red(self.cv_image[-150:-1, 300:500].copy())) > 200):
+        if(np.sum(find_Red(self.cv_image[-50:-1, 300:500].copy())) > 200):
             self.seeRed = True
         else:
             self.seeRed = False
         self.boundedImage, self.seeCar = filter_cars(self.boundedImage)
         if self.seeCar:
+            self.rightEdge = True
             self.blindToRed = False
 
     def findLicense_callback(self, isRunning):
         if isRunning.data:
             return
         arr = ParseCarImage()
-        print(arr)
         for i in range(len(arr)):
+            print(arr[i])
             self.license_pub.publish(arr[i])
         self.findLicense_sub.unregister()
         print("processinglicense")
@@ -227,6 +240,9 @@ class Master():
                 self.Navigation = True
 
         elif self.seeRed and not self.blindToRed:
+            if(self.passedPedestrians is 0 and not self.rightEdge):
+                self.turn = True
+            self.rightEdge = True
             self.Navigation = False
             self.onCrosswalk = True
             self.seePedestrian = True
@@ -244,7 +260,7 @@ class Master():
         except CvBridgeError as e:
             print(e)
 
-        if self.passedPedestrians == 0 and not self.blindToRed:
+        if self.passedPedestrians > -1 and not self.blindToRed:
             self.Running = False
         self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
