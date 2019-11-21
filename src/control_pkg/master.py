@@ -136,7 +136,7 @@ class Master():
 
     def imProcessing_callback(self, isRunning):
         if not isRunning.data:
-            pass
+            return
         self.boundedImage = self.cv_image
         self.lines = find_lines(self.cv_image)
         if(np.sum(find_Red(self.cv_image[-150:-1, 300:500].copy())) > 200):
@@ -150,12 +150,11 @@ class Master():
     def findLicense_callback(self, isRunning):
         if isRunning.data:
             return
-        # path = #path to images
-        # arr = ParseCarImage(path)
-        # for i in range(len(arr)):
-        #     print(arr[i])
-        #     self.license_pub.publish(arr[i])
-        # self.findLicense_sub.unregister()
+        arr = ParseCarImage()
+        print(arr)
+        for i in range(len(arr)):
+            self.license_pub.publish(arr[i])
+        self.findLicense_sub.unregister()
         print("processinglicense")
 
     def pedestrian_callback(self, isRunning):
@@ -245,7 +244,7 @@ class Master():
         except CvBridgeError as e:
             print(e)
 
-        if self.passedPedestrians > 0 and not self.blindToRed:
+        if self.passedPedestrians == 0 and not self.blindToRed:
             self.Running = False
         self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
