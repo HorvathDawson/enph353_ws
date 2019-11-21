@@ -8,18 +8,25 @@ from character_recognition import characterModel
 import os
 from collections import Counter
 
-TEAM_ID = "8"
-TEAM_PASS = "*******"
 
-model = characterModel.CharacterModel()
-model.loadWeights()
 
-def ParseCarImage(path):
+
+def ParseCarImage():
+    homePath = os.path.dirname(os.path.realpath(__file__))
+    path = homePath + '/licensePlateImages/'
+
+    TEAM_ID = "8"
+    TEAM_PASS = "*******"
+
+    model = characterModel.CharacterModel()
+    model.loadWeights()
+
     files = os.listdir(path)
     files_txt = [i for i in files if i.endswith('.png')]
     strs = [[],[],[],[],[],[],[],[],[],[]]
     licensePlates = []
-    strs[0] = [str(TEAM_ID + "," + TEAM_PASS + ",0,0000")]
+    strs[0] = [str("0000")]
+    print(len(files_txt))
     for i in range(len(files_txt)):
         img = cv2.imread(path + files_txt[i])
         try:

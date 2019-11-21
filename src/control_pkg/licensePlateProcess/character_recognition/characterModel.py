@@ -15,11 +15,13 @@ import os
 
 class CharacterModel:
     def __init__(self):
+        self.homePath = os.path.dirname(os.path.realpath(__file__))
+
         # dimensions of our images.
         self.img_width, self.img_height = 64, 64
 
-        train_data_dir = '/home/dawson/enph353_ws/src/control_pkg/licensePlateProcess/character_recognition/enph353_cnn_lab/TrainingData2/train'
-        validation_data_dir = '/home/dawson/enph353_ws/src/control_pkg/licensePlateProcess/character_recognition/enph353_cnn_lab/TrainingData2/validation'
+        train_data_dir = self.homePath + '/enph353_cnn_lab/TrainingData2/train'
+        validation_data_dir = self.homePath + '/enph353_cnn_lab/TrainingData2/validation'
 
         if K.image_data_format() == 'channels_first':
             self.input_shape = (3, self.img_width, self.img_height)
@@ -148,10 +150,10 @@ class CharacterModel:
         return [labels[k] for k in predicted_class_indices]
 
     def loadWeights(self):
-        self.model.load_weights('/home/dawson/enph353_ws/src/control_pkg/licensePlateProcess/character_recognition/weights.h5')
+        self.model.load_weights(self.homePath + '/weights.h5')
 
     def saveWeights(self):
-        self.model.save_weights('/home/dawson/enph353_ws/src/control_pkg/licensePlateProcess/character_recognition/weights.h5')
+        self.model.save_weights(self.homePath + '/weights.h5')
 
     def trainModel(self):
         history_conv = self.model.fit_generator(

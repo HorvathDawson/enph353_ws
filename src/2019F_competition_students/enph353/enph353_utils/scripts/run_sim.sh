@@ -2,7 +2,7 @@
 
 spawn_vehicles='false'
 spawn_pedestrians='true'
-generate_plates='false'
+generate_plates='true'
 label_plates='false'
 
 print_usage() {
