@@ -129,7 +129,7 @@ class Master():
             vel_cmd.linear.x = 0.0
             vel_cmd.angular.z = 0.5
             self.vel_pub.publish(vel_cmd)
-            time.sleep(0.5)
+            time.sleep(0.1)
             self.turn = False
 
         if not self.Navigation:

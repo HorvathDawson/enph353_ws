@@ -6,11 +6,14 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras import optimizers
 from keras.layers import Activation, Dropout, Flatten, Dense
 from keras import backend as K
+from noise import noisy
+
 import matplotlib.pyplot as plt
 import numpy as np
 import random
 import cv2
 import os
+import heapq
 
 
 class CharacterModel:
@@ -27,7 +30,7 @@ class CharacterModel:
             self.input_shape = (3, self.img_width, self.img_height)
         else:
             self.input_shape = (self.img_width, self.img_height, 3)
-        batch_size = 32
+        batch_size = 128
         self.model = Sequential()
         self.model.add(Conv2D(32, (3, 3), input_shape=self.input_shape))
         self.model.add(Activation('relu'))
@@ -46,73 +49,63 @@ class CharacterModel:
         self.model.add(Activation('relu'))
         self.model.add(Dropout(0.5))
         self.model.add(Dense(36))
-        self.model.add(Activation('sigmoid'))
-        # self.model.add(Activation('softmax'))
+        # self.model.add(Activation('sigmoid'))
+        self.model.add(Activation('softmax'))
         self.model.compile(
-                           optimizer='rmsprop',
-                           loss='binary_crossentropy',
-                           # loss='categorical_crossentropy',
-                           # optimizer='adam',
+                           # optimizer='rmsprop',
+                           # loss='binary_crossentropy',
+                           loss='categorical_crossentropy',
+                           optimizer='adam',
                            metrics=['accuracy'])
         # this is the augmentation configuration we will use for training
         def random_colour(img):
-            blur_value = random.randint(3, 15)
-            colour_mode = random.randint(1, 5)
+            colour_mode = random.randint(1, 4)
             if colour_mode == 1:
-                img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-                img = cv2.blur(img, (blur_value, blur_value))
-            if colour_mode == 2:
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
                 img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-                img = cv2.blur(img, (blur_value, blur_value))
-            if colour_mode == 3:
+            elif colour_mode == 3:
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                img = cv2.blur(img, (blur_value, blur_value))
-            if colour_mode == 4:
-                img = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
-                img = cv2.blur(img, (blur_value, blur_value))
+
             return img
         def random_pic(img):
-            blur_value = random.randint(3, 20)
-            # blur_value = 13
-            if random.randint(1,4) == 1:
-                gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-                blur_gray = cv2.GaussianBlur(gray, (5, 5), 0)
-                (thresh, blackAndWhiteImage) = cv2.threshold(
-                    blur_gray, 127, 255, cv2.THRESH_BINARY)
-                blackAndWhiteImage = cv2.cvtColor(blackAndWhiteImage, cv2.COLOR_GRAY2RGB)
-                # Mask used to flood filling.
-                # Notice the size needs to be 2 pixels than the image.
-                h, w = blackAndWhiteImage.shape[:2]
-                mask = np.zeros((h + 2, w + 2), np.uint8)
-
-                # # Floodfill
-                corner = random.randint(1, 3)
-                if random.randint(1, 3) == 1:
-                    cv2.floodFill(img, mask, (0, 0), (random.randint(
-                        1, 255), random.randint(1, 255), random.randint(1, 255)))
-                if random.randint(1, 3) == 1:
-                    cv2.floodFill(img, mask, (0, w - 2), (random.randint(
-                        1, 255), random.randint(1, 255), random.randint(1, 255)))
-                if random.randint(1, 3) == 1:
-                    cv2.floodFill(img, mask, (h - 2, 0), (random.randint(
-                        1, 255), random.randint(1, 255), random.randint(1, 255)))
-                if random.randint(1, 3) == 1:
-                    cv2.floodFill(img, mask, (h - 2, w - 2), (random.randint(
-                        1, 255), random.randint(1, 255), random.randint(1, 255)))
-            if random.randint(1,6) > 2:
+            blur_value = random.randint(13, 18)
+            if random.choice([0, 1]):
+                # if random.choice([0, 1]):
+                #     img = noisy('gauss',img)
+                if random.choice([0, 1]):
+                    img = noisy('s&p',img)
+                if random.choice([0, 1]):
+                    img = noisy('poisson',img)
+                # if random.choice([0, 1]):
+                #     img = noisy('speckle',img)
+            if random.choice([0, 1]):
                 img = cv2.blur(img, (blur_value, blur_value))
             else:
-                blr = random.randint(20,100)
-                img = cv2.addWeighted(img, 5, cv2.blur(img, (blr, blr)), -4, 128)
-                img = abs(img)
+                img = cv2.blur(img, (5, blur_value))
 
+            if random.choice([0, 1]):
+                blr = random.randint(20,75)
+                img = cv2.addWeighted(img, 4, cv2.blur(img, (blr, blr)), -3, 64)
+                img = img.clip(min=0)
+            img = img.astype(np.float32)
+            scale_percent = 20 # percent of original size
+            width = int(img.shape[1] * scale_percent / 100)
+            height = int(img.shape[0] * scale_percent / 100)
+            dim = (width, height)
+            dim_orig = (img.shape[1], img.shape[0])
+
+            # resize image
+            resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
+            img = cv2.resize(resized, dim_orig, interpolation = cv2.INTER_AREA)
             img = random_colour(img)
+
             return img
+
+
         train_datagen = ImageDataGenerator(
             rotation_range=25,
-            zoom_range=[0.6, 1.5],
-            shear_range=0.2,
+            zoom_range=[0.9, 1.1],
+            shear_range=0.3,
             width_shift_range=0.1,
             height_shift_range=0.1,
             brightness_range=[0.7, 1.3],
@@ -141,16 +134,19 @@ class CharacterModel:
             class_mode="categorical")
 
     def predict(self, np_image):
+        # cv2.imshow("..", np_image)
+        # cv2.waitKey(0)
         np_image = transform.resize(np_image, self.input_shape)
         np_image = np.expand_dims(np_image, axis=0)
         predict = self.model.predict(np_image)
-        k = (predict.copy())[0]
-        largest_ind = np.argpartition(k, -10)[-10:]
+        k = np.array((predict.copy())[0], dtype=np.float128)
+        largest_ind = np.argpartition(k, [0,-1,-2,-3,-4,-5])[-5:][::-1]
 
         predicted_class_indices = np.argmax(predict, axis=1)
         labels = (self.train_generator.class_indices)
         labels = dict((v, k) for k, v in labels.items())
-        return [labels[k] for k in predicted_class_indices]
+
+        return [labels[k] for k in largest_ind]
 
     def loadWeights(self):
         self.model.load_weights(self.homePath + '/weights.h5')
@@ -161,8 +157,8 @@ class CharacterModel:
     def trainModel(self):
         history_conv = self.model.fit_generator(
             self.train_generator,
-            steps_per_epoch=1000,
-            epochs=1,
+            steps_per_epoch=50,
+            epochs=5,
             validation_data=self.validation_generator,
             validation_steps=100)
         test_loss, test_acc = self.model.evaluate(

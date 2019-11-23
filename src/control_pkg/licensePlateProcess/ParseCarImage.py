@@ -9,9 +9,6 @@ import os
 from collections import Counter
 import pwd
 
-
-
-
 def ParseCarImage():
     homePath = os.path.dirname(os.path.realpath(__file__))
     path = homePath + '/licensePlateImages/'
@@ -27,7 +24,6 @@ def ParseCarImage():
     strs = [[],[],[],[],[],[],[],[],[],[]]
     licensePlates = []
     strs[0] = [str("0000")]
-    print(len(files_txt))
     for i in range(len(files_txt)):
         img = cv2.imread(path + files_txt[i])
         try:
@@ -36,12 +32,14 @@ def ParseCarImage():
             continue
 
         (h, w, c) = np.shape(imgLicense)
-        if(w * h > 1500 and not imgLicense[0, 0, 0] == 155):
+        if(w * h > 2000 and not imgLicense[0, 0, 0] == 155):
             try:
                 # str = str(TEAM_ID +"," + TEAM_PASS + find_ParkingSpot(imgWarp[50:lx[1], lx[0]:ux[0]], model) + "," + find_license(imgLicense, model))
                 index = int(find_ParkingSpot(imgWarp[50:lx[1], lx[0]:ux[0]], model))
+
                 license = find_license(imgLicense, model)
-                strs[index].append(license)
+                if len(license) > 3:
+                    strs[index].append(license)
             except:
                 continue
 
