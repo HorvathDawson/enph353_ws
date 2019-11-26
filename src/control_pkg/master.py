@@ -5,6 +5,7 @@ from helperClasses.image_processing import find_Cars
 from helperClasses.image_processing import filter_cars
 from helperClasses.image_processing import find_Red
 from helperClasses.image_processing import COM
+from helperClasses.image_processing import find_Truck
 from geometry_msgs.msg import Twist
 import sys
 import rospy
@@ -126,12 +127,12 @@ class Master():
             vel_cmd.linear.x = 0.3
             vel_cmd.angular.z = 0
 
-        if self.turn:
-            vel_cmd.linear.x = 0.0
-            vel_cmd.angular.z = 0.5
-            self.vel_pub.publish(vel_cmd)
-            time.sleep(0.1)
-            self.turn = False
+        # if self.turn:
+        #     vel_cmd.linear.x = 0.0
+        #     vel_cmd.angular.z = 0.5
+        #     self.vel_pub.publish(vel_cmd)
+        #     time.sleep(0.1)
+        #     self.turn = False
 
         if not self.Navigation:
             vel_cmd.linear.x = 0.0
@@ -160,8 +161,6 @@ class Master():
         if self.seeCar:
             self.rightEdge = True
             self.blindToRed = False
-        cv2.imshow("red", find_Red(self.cv_image))
-        cv2.waitKey(5)
 
     def findLicense_callback(self, isRunning):
         if isRunning.data:
@@ -174,7 +173,7 @@ class Master():
         print("processinglicense")
 
     def pedestrian_callback(self, isRunning):
-        if not isRunning.data: # or self.insideloop:
+        if not isRunning.data or self.insideloop:
             return
         if self.onCrosswalk:
             # do actions to deal with it
@@ -243,8 +242,8 @@ class Master():
                 self.Navigation = True
 
         elif self.seeRed and not self.blindToRed:
-            if(self.passedPedestrians is 0 and not self.rightEdge):
-                self.turn = True
+            # if(self.passedPedestrians is 0 and not self.rightEdge):
+            #     self.turn = True
             self.rightEdge = True
             self.Navigation = False
             self.onCrosswalk = True
@@ -256,6 +255,8 @@ class Master():
         if self.boundedImage is not None:
             cv2.imshow("camera", self.boundedImage)
             cv2.waitKey(5)
+            cv2.imshow("red", find_Red(self.cv_image))
+            cv2.waitKey(5)
 
     def camera_callback(self, data):
         try:
@@ -263,14 +264,16 @@ class Master():
         except CvBridgeError as e:
             print(e)
 
-        if self.passedPedestrians > 1 and not self.blindToRed:
-            self.insideloop = True
-            self.rightEdge = False
+        # if self.passedPedestrians > 1 and not self.blindToRed:
+        #     self.insideloop = True
+        #     self.rightEdge = False
 
-        self.pedestrian_pub.publish(self.Running)
+        # self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
-        self.nav_pub.publish(self.Running)
-        self.findLicense_pub.publish(self.Running)
+        # self.nav_pub.publish(self.Running)
+        # self.findLicense_pub.publish(self.Running)
+        cv2.imshow("red", find_Truck(self.cv_image))
+        cv2.waitKey(5)
 
 def main():
     rospy.init_node('Master', anonymous=True)

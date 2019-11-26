@@ -20,6 +20,16 @@ def find_Red(im):
     mask = cv2.inRange(hsv, lower, upper)
     return mask
 
+def find_Truck(im):
+    hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+    hsv = hsv + hsv
+    lower = np.array([3, 20, 20])
+    upper = np.array([10, 100, 100])
+    mask = cv2.inRange(hsv, lower, upper)
+    kernel = np.ones((20, 20), np.uint8)
+    mask = cv2.dilate(mask, kernel, iterations=2)
+    return mask
+
 def find_Cars(im):
     img = im[:,600:].copy()
     hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
