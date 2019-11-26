@@ -5,6 +5,9 @@ from helperClasses.image_processing import find_Cars
 from helperClasses.image_processing import filter_cars
 from helperClasses.image_processing import find_Red
 from helperClasses.image_processing import COM
+from helperClasses.image_processing import find_Grass
+from helperClasses.image_processing import find_roads
+from helperClasses.image_processing import find_inside_stop
 from geometry_msgs.msg import Twist
 import sys
 import rospy
@@ -55,6 +58,7 @@ class Master():
         self.reductionMod = 3
 
         self.Running = True
+        self.lastOutCar = False
 
         # conditions
         self.seeRed = False
@@ -65,9 +69,12 @@ class Master():
         self.frameCounter = 0
         self.frameCountReached = False
         self.turn = False
+        self.goStraight = False
+        self.finalCar = False
 
         # action
         self.Navigation = False
+        self.insideLoop = False
 
         # globals
         self.rightEdge = False
@@ -136,9 +143,34 @@ class Master():
             vel_cmd.linear.x = 0.0
             vel_cmd.angular.z = 0.0
 
-        if self.Navigation and self.onCrosswalk:
+        if (self.Navigation and self.onCrosswalk):
             vel_cmd.linear.x = 0.5
             vel_cmd.angular.z = 0.0
+
+        if self.seeCar and self.finalCar:
+            self.Running = False
+
+        if self.seeCar and self.lastOutCar:
+            vel_cmd.linear.x = 0.5
+            vel_cmd.angular.z = 0.0
+
+        if self.seeCar and self.insideLoop:
+            print("saw first car")
+            vel_cmd.linear.x = 0.5
+            vel_cmd.angular.z = 0.0
+            self.goStraight = True
+
+        if not self.seeCar and self.goStraight:
+            self.goStraight = False
+            vel_cmd.linear.x = 0.5
+            vel_cmd.angular.z = 0.0
+            self.vel_pub.publish(vel_cmd)
+            print(self.goStraight)
+            time.sleep(1)
+            print("yup")
+            self.rightEdge = True
+            self.insideLoop = False
+            self.finalCar = True
 
         if not isRunning.data:
             vel_cmd.linear.x = 0.0
@@ -156,9 +188,20 @@ class Master():
         else:
             self.seeRed = False
         self.boundedImage, self.seeCar = filter_cars(self.boundedImage)
-        if self.seeCar:
+        
+        if self.seeCar and not self.insideLoop:
             self.rightEdge = True
             self.blindToRed = False
+
+        elif not self.seeCar and self.lastOutCar:
+            self.rightEdge = False
+
+        if self.lastOutCar and find_inside_stop(self.cv_image):
+            print("inside loop")
+            self.insideLoop = True
+            self.lastOutCar = False
+
+
 
     def findLicense_callback(self, isRunning):
         if isRunning.data:
@@ -253,15 +296,21 @@ class Master():
         if self.boundedImage is not None:
             cv2.imshow("camera", self.boundedImage)
             cv2.waitKey(5)
+            # cv2.imshow('trees',find_inside_stop(self.boundedImage))
+            # cv2.waitKey(5)
 
+
+# 
     def camera_callback(self, data):
         try:
             self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
 
-        if self.passedPedestrians > 2 and not self.blindToRed:
-            self.Running = False
+        if self.passedPedestrians > 1 and not self.finalCar and not self.blindToRed and not self.insideLoop:
+            self.lastOutCar = True
+            #self.Running = False
+
         self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
         self.nav_pub.publish(self.Running)

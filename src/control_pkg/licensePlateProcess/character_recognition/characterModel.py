@@ -18,6 +18,7 @@ import heapq
 
 class CharacterModel:
     def __init__(self):
+        K.clear_session()
         self.homePath = os.path.dirname(os.path.realpath(__file__))
 
         # dimensions of our images.
@@ -149,7 +150,7 @@ class CharacterModel:
         return [labels[k] for k in largest_ind]
 
     def loadWeights(self):
-        self.model.load_weights(self.homePath + '/weights.h5')
+        self.model.load_weights('/home/bhux/enph353_ws/src/control_pkg/licensePlateProcess/character_recognition/weights.h5')
 
     def saveWeights(self):
         self.model.save_weights(self.homePath + '/weights.h5')

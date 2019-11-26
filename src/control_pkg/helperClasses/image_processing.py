@@ -13,6 +13,33 @@ def find_lines(im):
     processed = cv2.erode(processed, kernel, iterations=2)
     return processed
 
+def find_inside_stop(im):
+    foundStop = False
+
+    lineimg = find_lines(im)
+
+    cv2MajorVersion = cv2.__version__.split(".")[0]
+    # check for contours on thresh
+    if int(cv2MajorVersion) == 4:
+        ctrs, hier = cv2.findContours(lineimg.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    else:
+        im2, ctrs, hier = cv2.findContours(lineimg.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # sort contours
+    sorted_ctrs = sorted(ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
+
+    im = im.copy()
+    
+    for i, ctr in enumerate(sorted_ctrs):
+    # Get bounding box
+        x, y, w, h = cv2.boundingRect(ctr)
+    if (w>225) and int(w/h) > 4:
+        foundStop = True
+        #cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
+    return foundStop
+
+
+
 def find_Red(im):
     hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
     lower = np.array([0, 50, 50])
@@ -34,8 +61,8 @@ def find_Cars(im):
 
 def find_Grass(im):
     hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
-    lower = np.array([70, 50, 50])
-    upper = np.array([75, 255, 255])
+    lower = np.array([0, 0, 0])
+    upper = np.array([25, 50, 255])
     mask = cv2.inRange(hsv, lower, upper)
     kernel = np.ones((5, 5), np.uint8)
     processed = cv2.dilate(mask, kernel, iterations=2)
@@ -109,12 +136,13 @@ def filter_cars(im):
         # Get bounding box
         x, y, w, h = cv2.boundingRect(ctr)
         b = np.array([[w * h, x, y, w, h]])
-    	if((w*h > ((1200*700)/14))):
+    	if((w*h > ((1200*700)/12))):
     	    carFound = True
             cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
 
             if(im is not None):
                 imCrop = im[y:y+h,x:x+w]
                 cv2.imwrite("/home/dawson/enph353_ws/src/control_pkg/licensePlateProcess/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
+                cv2.imwrite("/home/bhux/enph353_ws/src/control_pkg/licensePlateProcess/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
 
     return im,carFound
