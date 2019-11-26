@@ -150,7 +150,7 @@ class CharacterModel:
         return [labels[k] for k in largest_ind]
 
     def loadWeights(self):
-        self.model.load_weights('/home/bhux/enph353_ws/src/control_pkg/licensePlateProcess/character_recognition/weights.h5')
+        self.model.load_weights(self.homePath + '/weights.h5')
 
     def saveWeights(self):
         self.model.save_weights(self.homePath + '/weights.h5')

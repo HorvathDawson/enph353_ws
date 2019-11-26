@@ -147,9 +147,6 @@ class Master():
             vel_cmd.linear.x = 0.5
             vel_cmd.angular.z = 0.0
 
-        if self.seeCar and self.finalCar:
-            self.Running = False
-
         if self.seeCar and self.lastOutCar:
             vel_cmd.linear.x = 0.5
             vel_cmd.angular.z = 0.0
@@ -166,7 +163,7 @@ class Master():
             vel_cmd.angular.z = 0.0
             self.vel_pub.publish(vel_cmd)
             print(self.goStraight)
-            time.sleep(1)
+            time.sleep(0.2)
             print("yup")
             self.rightEdge = True
             self.insideLoop = False
@@ -188,7 +185,7 @@ class Master():
         else:
             self.seeRed = False
         self.boundedImage, self.seeCar = filter_cars(self.boundedImage)
-        
+
         if self.seeCar and not self.insideLoop:
             self.rightEdge = True
             self.blindToRed = False
@@ -300,7 +297,7 @@ class Master():
             # cv2.waitKey(5)
 
 
-# 
+#
     def camera_callback(self, data):
         try:
             self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
@@ -310,7 +307,10 @@ class Master():
         if self.passedPedestrians > 1 and not self.finalCar and not self.blindToRed and not self.insideLoop:
             self.lastOutCar = True
             #self.Running = False
-
+        if self.seeCar and self.finalCar:
+            self.rightEdge = False
+        if self.seeRed and self.finalCar:
+            self.Running = False
         self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
         self.nav_pub.publish(self.Running)
