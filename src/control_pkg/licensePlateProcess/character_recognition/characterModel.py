@@ -18,6 +18,7 @@ import heapq
 
 class CharacterModel:
     def __init__(self):
+        K.clear_session()
         self.homePath = os.path.dirname(os.path.realpath(__file__))
 
         # dimensions of our images.

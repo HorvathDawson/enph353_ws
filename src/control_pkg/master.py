@@ -260,7 +260,7 @@ class Master():
         except CvBridgeError as e:
             print(e)
 
-        if self.passedPedestrians > 2 and not self.blindToRed:
+        if self.passedPedestrians > 1 and not self.blindToRed:
             self.Running = False
         self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
