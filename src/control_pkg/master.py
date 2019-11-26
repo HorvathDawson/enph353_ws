@@ -74,6 +74,7 @@ class Master():
         self.hysteresisSize = 40
         self.pedestrian_buffer = 0
         self.safeToGo = False
+        self.insideloop = False
         self.frameCounter = 0
 
         self.x_cur,self.y_cur,self.w_cur,self.h_cur = 0,0,0,0
@@ -136,7 +137,7 @@ class Master():
             vel_cmd.linear.x = 0.0
             vel_cmd.angular.z = 0.0
 
-        if self.Navigation and self.onCrosswalk:
+        if self.Navigation and self.onCrosswalk or self.insideloop and self.seeCar:
             vel_cmd.linear.x = 0.5
             vel_cmd.angular.z = 0.0
 
@@ -159,6 +160,8 @@ class Master():
         if self.seeCar:
             self.rightEdge = True
             self.blindToRed = False
+        cv2.imshow("red", find_Red(self.cv_image))
+        cv2.waitKey(5)
 
     def findLicense_callback(self, isRunning):
         if isRunning.data:
@@ -171,7 +174,7 @@ class Master():
         print("processinglicense")
 
     def pedestrian_callback(self, isRunning):
-        if not isRunning.data:
+        if not isRunning.data: # or self.insideloop:
             return
         if self.onCrosswalk:
             # do actions to deal with it
@@ -261,7 +264,9 @@ class Master():
             print(e)
 
         if self.passedPedestrians > 1 and not self.blindToRed:
-            self.Running = False
+            self.insideloop = True
+            self.rightEdge = False
+
         self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
         self.nav_pub.publish(self.Running)
