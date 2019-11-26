@@ -68,6 +68,7 @@ class Master():
         self.blindToRed = False
         self.frameCounter = 0
         self.frameCountReached = False
+        self.finalCarFrameCount = 0
         self.turn = False
         self.goStraight = False
         self.finalCar = False
@@ -148,7 +149,9 @@ class Master():
             vel_cmd.angular.z = 0.0
 
         if self.seeCar and self.finalCar:
-            self.Running = False
+            self.finalCarFrameCount += 1
+            if(self.finalCarFrameCount>8):
+                self.Running = False
 
         if self.seeCar and self.lastOutCar:
             vel_cmd.linear.x = 0.5
