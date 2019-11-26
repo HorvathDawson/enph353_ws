@@ -68,6 +68,7 @@ class Master():
         self.blindToRed = False
         self.frameCounter = 0
         self.frameCountReached = False
+        self.finalCarFrameCount = 0
         self.turn = False
         self.goStraight = False
         self.finalCar = False
