@@ -166,11 +166,10 @@ class Master():
             self.blindToRed = False
             self.rightEdge = True
         if self.enteringLoop:
-            w, self.boundedImage = find_roads(self.boundedImage)
+            w = find_roads(self.cv_image)
             if w > 1275:
                 self.waitForTruck = True
                 self.Navigation = False
-                self.nav_pub.publish(self.Running)
 
 
     def findLicense_callback(self, isRunning):
@@ -184,6 +183,10 @@ class Master():
         self.findLicense_sub.unregister()
 
     def pedestrian_callback(self, isRunning):
+        if self.boundedImage is not None:
+        	cv2.imshow("bounded",self.boundedImage)
+        	cv2.waitKey(1)
+
         if not isRunning.data or self.insideloop or self.waitForTruck or self.enteringLoop:
             return
         elif self.onCrosswalk:
@@ -261,10 +264,6 @@ class Master():
             self.pedestrian_buffer = 0
             self.Navigation = True
 
-        if self.boundedImage is not None:
-            cv2.imshow("bounded", self.boundedImage)
-            cv2.waitKey(1)
-
     def checkMotion(self):
         self.arr.append(self.cv_image)
 
@@ -308,6 +307,7 @@ class Master():
             cv2.rectangle(self.boundedImage, (x,y), (x+w,y+h), (0,255,255),2)
 
         return True
+
     def camera_callback(self, data):
         try:
             self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
@@ -333,20 +333,14 @@ class Master():
                 self.waitForTruck = False
                 self.Navigation = True
                 self.insideloop = True
-            # working code below
-            # print("waiting for truck")
-            # if not self.checkMotion():
-            #     self.waitForTruck = False
-            #     self.Navigation = True
-            #     self.insideloop = True
 
         if self.insideloop and (self.seeCar or self.onCrosswalk):
             print("first car inside going straight")
             self.onCrosswalk = True
-            self.rightEdge = True
-
+            
         if self.insideloop and self.onCrosswalk and np.sum(self.lines[-200:-80,400:550]) and not self.seeCar:
             print("stopping: now following lane")
+            self.rightEdge = True
             self.onCrosswalk = False
             self.insideloop = False
             self.finalCar = True

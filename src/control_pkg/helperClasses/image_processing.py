@@ -48,6 +48,7 @@ def find_Grass(im):
     return processed
 
 def find_roads(im):
+    w = 0
     img = im.copy()
     # img[-250:,:] = 0 finds it perpendicular
     # img[-150:,:] = 0 works
@@ -66,14 +67,16 @@ def find_roads(im):
     if int(cv2MajorVersion) == 4:
         ctrs, hier = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     else:
-	im2, ctrs, hier = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+	   im2, ctrs, hier = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # sort contours
     sorted_ctrs = sorted(ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
     im = im.copy()
-    x, y, w, h = cv2.boundingRect(sorted_ctrs[0])
+
+    if(len(sorted_ctrs) is not 0):
+        x, y, w, h = cv2.boundingRect(sorted_ctrs[0])
     # cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
-    return w, im
+    return w
 
 def hugh_lines(im):
     gray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
@@ -116,6 +119,7 @@ def COM(im):
         cX = 0
         cY = 0
     return cX, cY
+
 def filter_cars(im):
     bwimg = find_Cars(im)
     carFound = False
@@ -141,6 +145,7 @@ def filter_cars(im):
 
             if(im is not None):
                 imCrop = im[y:y+h,x:x+w]
-                cv2.imwrite("/home/dawson/enph353_ws/src/control_pkg/licensePlateProcess/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
+                #cv2.imwrite("/home/dawson/enph353_ws/src/control_pkg/licensePlateProcess/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
+                cv2.imwrite("/home/bhux/enph353_ws/src/control_pkg/licensePlateProcess/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
 
     return im,carFound
