@@ -109,11 +109,11 @@ class Master():
         vel_cmd = Twist()
 
         if self.rightEdge == True:
-            setpoint = 950
+            setpoint = 1000
             edge_1[:, :500] = 0
             edge_2[:, :500] = 0
         else:
-            setpoint = 125
+            setpoint = 175
             edge_1[:, 700:] = 0
             edge_2[:, 700:] = 0
         cX1, cY1 = COM(edge_1)
@@ -167,14 +167,12 @@ class Master():
             vel_cmd.angular.z = 0.0
             self.goStraight = True
 
-        if not self.seeCar and self.goStraight and np.sum(self.lines[-10:,-75:]):
+        if not self.seeCar and self.goStraight and np.sum(self.lines[-30:,-200:])>0:
             self.insideLoop = False
             self.goStraight = False
             self.rightEdge = True
             self.finalCar = True
             print("switching to left")
-
-
 
         # if not self.seeCar and self.goStraight:
         #     self.goStraight = False
@@ -229,6 +227,50 @@ class Master():
             self.license_pub.publish(arr[i])
         self.findLicense_sub.unregister()
         print("processinglicense")
+
+    def checkMotion(self):
+        arr.append(self.cv_image)
+
+        if(len(arr) == 5):
+            w = 0
+            h = 0
+
+            background = cv2.cvtColor(arr[0], cv2.COLOR_BGR2GRAY)
+            background = cv2.GaussianBlur(background, (21, 21), 0)
+
+            liveFeed = cv2.cvtColor(arr[-1], cv2.COLOR_BGR2GRAY)
+            liveFeed = cv2.GaussianBlur(liveFeed, (21, 21), 0)
+
+            frameDelta = cv2.absdiff(background, liveFeed)
+            thresh = cv2.threshold(
+                frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
+
+            kernel = np.ones((4, 3), dtype=np.uint8)
+            thresh = cv2.dilate(thresh, kernel, iterations=12)
+
+            cv2MajorVersion = cv2.__version__.split(".")[0]
+            if int(cv2MajorVersion) == 4:
+                ctrs, hier = cv2.findContours(
+                    thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            else:
+                im2, ctrs, hier = cv2.findContours(
+                    thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            ctrs = sorted(
+                ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
+
+            if(len(ctrs) != 0):
+                ctr = ctrs[-1]
+                x, y, w, h = cv2.boundingRect(ctr)
+            else:
+                return false
+
+            self.boundedImage = self.boundedImage.copy()
+
+            cv2.rectangle(self.boundedImage, (x,y), (x+w,y+h), (0,255,255),2)
+
+        return true
+
 
     def pedestrian_callback(self, isRunning):
         if not isRunning.data:
