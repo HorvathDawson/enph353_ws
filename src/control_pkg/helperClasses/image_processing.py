@@ -145,7 +145,7 @@ def filter_cars(im):
 
             if(im is not None):
                 imCrop = im[y:y+h,x:x+w]
-                #cv2.imwrite("/home/dawson/enph353_ws/src/control_pkg/licensePlateProcess/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
+                cv2.imwrite("/home/dawson/enph353_ws/src/control_pkg/licensePlateProcess/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
                 cv2.imwrite("/home/bhux/enph353_ws/src/control_pkg/licensePlateProcess/licensePlateImages/" + str(datetime.now().time()) +  ".png",imCrop)
 
     return im,carFound
