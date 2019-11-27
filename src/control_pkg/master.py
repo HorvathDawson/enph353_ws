@@ -5,7 +5,7 @@ from helperClasses.image_processing import find_Cars
 from helperClasses.image_processing import filter_cars
 from helperClasses.image_processing import find_Red
 from helperClasses.image_processing import COM
-from helperClasses.image_processing import find_Truck
+from helperClasses.image_processing import find_roads
 from geometry_msgs.msg import Twist
 import sys
 import rospy
@@ -18,12 +18,20 @@ from collections import deque
 import time
 from std_msgs.msg import Bool, Int8, Int32, Float64, String
 from licensePlateProcess.ParseCarImage import ParseCarImage
+from datetime import datetime
+import os
+import glob
 
 
 class Master():
     def __init__(self):
         print("Initializing")
+        homePath = os.path.dirname(os.path.realpath(__file__))
+        path = homePath + '/licensePlateProcess/licensePlateImages/'
 
+        files = glob.glob(path + '*')
+        for f in files:
+            os.remove(f)
         # Create subscriber nodes for master class
         rospy.Subscriber("/R1/pi_camera/image_raw", Image,
                          self.camera_callback, queue_size=1)
@@ -65,7 +73,8 @@ class Master():
         self.blindToRed = False
         self.frameCounter = 0
         self.frameCountReached = False
-        self.turn = False
+        self.enteringLoop = False
+        self.waitForTruck = False
 
         # action
         self.Navigation = False
@@ -77,12 +86,14 @@ class Master():
         self.lastcar = False
         self.insideloop = False
         self.frameCounter = 0
+        self.finalCar = False
 
         self.x_cur,self.y_cur,self.w_cur,self.h_cur = 0,0,0,0
         self.speedReductionTimer = 0
         self.passedPedestrians = 0
 
         self.q = deque([], maxlen=3)
+        self.arr = deque([], maxlen=5)
         self.x_cur, self.y_cur, self.w_cur, self.h_cur = 0, 0, 0, 0
 
     def navigation_callback(self, isRunning):
@@ -94,11 +105,11 @@ class Master():
         vel_cmd = Twist()
 
         if self.rightEdge == True:
-            setpoint = 950
+            setpoint = 1000
             edge_1[:, :500] = 0
             edge_2[:, :500] = 0
         else:
-            setpoint = 125
+            setpoint = 175
             edge_1[:, 700:] = 0
             edge_2[:, 700:] = 0
         cX1, cY1 = COM(edge_1)
@@ -127,15 +138,12 @@ class Master():
             vel_cmd.linear.x = 0.3
             vel_cmd.angular.z = 0
 
-
+        if self.Navigation and self.onCrosswalk or self.enteringLoop and self.seeCar:
+            vel_cmd.linear.x = 0.5
+            vel_cmd.angular.z = 0.0
         if not self.Navigation:
             vel_cmd.linear.x = 0.0
             vel_cmd.angular.z = 0.0
-
-        if self.Navigation and self.onCrosswalk or self.insideloop and self.seeCar:
-            vel_cmd.linear.x = 0.5
-            vel_cmd.angular.z = 0.0
-
         if not isRunning.data:
             vel_cmd.linear.x = 0.0
             vel_cmd.angular.z = 0.0
@@ -153,9 +161,16 @@ class Master():
         else:
             self.seeRed = False
         self.boundedImage, self.seeCar = filter_cars(self.boundedImage)
-        if self.seeCar:
-            self.rightEdge = True
+        if self.seeCar and not (self.enteringLoop or self.insideloop):
             self.blindToRed = False
+            self.rightEdge = True
+        if self.enteringLoop:
+            w, self.boundedImage = find_roads(self.boundedImage)
+            if w > 1275:
+                self.waitForTruck = True
+                self.Navigation = False
+                self.nav_pub.publish(self.Running)
+
 
     def findLicense_callback(self, isRunning):
         if isRunning.data:
@@ -168,9 +183,9 @@ class Master():
         self.findLicense_sub.unregister()
 
     def pedestrian_callback(self, isRunning):
-        if not isRunning.data or self.insideloop:
+        if not isRunning.data or self.insideloop or self.waitForTruck or self.enteringLoop:
             return
-        if self.onCrosswalk:
+        elif self.onCrosswalk:
             # do actions to deal with it
             self.pedestrian_buffer += 1
             self.blindToRed = True
@@ -246,38 +261,95 @@ class Master():
             self.Navigation = True
 
         if self.boundedImage is not None:
-            cv2.imshow("camera", self.boundedImage)
-            cv2.waitKey(5)
-            # cv2.imshow("red", find_Red(self.cv_image))
-            # cv2.waitKey(5)
+            cv2.imshow("bounded", self.boundedImage)
+            cv2.waitKey(1)
 
+    def checkMotion(self):
+        self.arr.append(self.cv_image)
+
+        if(len(self.arr) == self.arr.maxlen):
+            w = 0
+            h = 0
+            background = cv2.cvtColor(self.arr[0], cv2.COLOR_BGR2GRAY)
+            background = cv2.GaussianBlur(background, (21, 21), 0)
+
+            liveFeed = cv2.cvtColor(self.arr[-1], cv2.COLOR_BGR2GRAY)
+            liveFeed = cv2.GaussianBlur(liveFeed, (21, 21), 0)
+
+            frameDelta = cv2.absdiff(background, liveFeed)
+            thresh = cv2.threshold(
+                frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
+
+            kernel = np.ones((4, 3), dtype=np.uint8)
+            thresh = cv2.dilate(thresh, kernel, iterations=12)
+
+            cv2MajorVersion = cv2.__version__.split(".")[0]
+            if int(cv2MajorVersion) == 4:
+                ctrs, hier = cv2.findContours(
+                    thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            else:
+                im2, ctrs, hier = cv2.findContours(
+                    thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            ctrs = sorted(
+                ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
+
+            if(len(ctrs) != 0):
+                ctr = ctrs[-1]
+                x, y, w, h = cv2.boundingRect(ctr)
+            else:
+                return False
+
+            self.boundedImage = self.boundedImage.copy()
+
+            cv2.rectangle(self.boundedImage, (x,y), (x+w,y+h), (0,255,255),2)
+
+        return True
     def camera_callback(self, data):
         try:
             self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
 
-        if self.passedPedestrians > 1 and not self.blindToRed:
-            self.insideloop = True
-            self.rightEdge = False
 
-        if self.insideloop and not self.rightEdge and self.seeCar:
-            self.rightEdge = True
+        if self.passedPedestrians > 1 and not self.blindToRed and not self.enteringLoop:
+            print("set left edge follow after outside car")
+            self.rightEdge = False
+            self.enteringLoop = True
+            self.passedPedestrians = 0
+
+        if self.waitForTruck:
+            print("waiting for truck")
+            self.enteringLoop = False
+            print("navigation, " + str(self.Navigation))
+            if not self.checkMotion():
+                self.waitForTruck = False
+                self.Navigation = True
+                self.insideloop = True
+
+        if self.insideloop and (self.seeCar or self.onCrosswalk):
+            print("first car inside")
             self.onCrosswalk = True
 
-        if self.onCrosswalk and not np.sum(self.lines[-450:-400, 575:625]) and self.insideloop:
+        if self.insideloop and self.onCrosswalk and not self.seeCar and not np.sum(self.lines[-500:-100,:450]):
+            print("straight forward")
+            self.rightEdge = True
             self.onCrosswalk = False
-            self.lastcar = True
-        # if self.lastcar and self.seeCar:
-        #     self.rightEdge = False
+            self.insideloop = False
+            self.finalCar = True
+
+        if self.seeCar and self.finalCar:
+            self.rightEdge = False
+            print("last car")
+        elif self.seeRed and self.finalCar:
+            self.Running = False
 
 
         self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
         self.nav_pub.publish(self.Running)
         self.findLicense_pub.publish(self.Running)
-        # cv2.imshow("car process", find_Truck(self.cv_image))
-        # cv2.waitKey(5)
+
 
 def main():
     rospy.init_node('Master', anonymous=True)

@@ -48,11 +48,30 @@ def find_Grass(im):
     return processed
 
 def find_roads(im):
-    hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+    img = im.copy()
+    img[-150:,:] = 0
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     lower = np.array([0, 0, 70])  # 50
     upper = np.array([0, 0, 110])  # 100
     mask = cv2.inRange(hsv, lower, upper)
-    return mask
+
+    kernel = np.ones((5, 5), np.uint8)
+    mask = cv2.erode(mask, kernel, iterations=2)
+    kernel = np.ones((2, 8), np.uint8)
+    mask = cv2.dilate(mask, kernel, iterations=7)
+
+    cv2MajorVersion = cv2.__version__.split(".")[0]
+    if int(cv2MajorVersion) == 4:
+        ctrs, hier = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    else:
+	im2, ctrs, hier = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # sort contours
+    sorted_ctrs = sorted(ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
+    im = im.copy()
+    x, y, w, h = cv2.boundingRect(sorted_ctrs[0])
+    # cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
+    return w, im
 
 def hugh_lines(im):
     gray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
@@ -114,7 +133,7 @@ def filter_cars(im):
         # Get bounding box
         x, y, w, h = cv2.boundingRect(ctr)
         b = np.array([[w * h, x, y, w, h]])
-    	if((w*h > ((1200*700)/14))):
+    	if((w*h > ((1200*700)/12))):
     	    carFound = True
             cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
 
