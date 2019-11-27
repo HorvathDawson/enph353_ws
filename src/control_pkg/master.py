@@ -19,19 +19,19 @@ import imutils
 from collections import deque
 import time
 from std_msgs.msg import Bool, Int8, Int32, Float64, String
-#from licensePlateProcess.ParseCarImage import ParseCarImage
+from licensePlateProcess.ParseCarImage import ParseCarImage
 import glob
 import os
 
 
 class Master():
     def __init__(self):
-        # homePath = os.path.dirname(os.path.realpath(__file__))
-        # path = homePath + '/licensePlateProcess/licensePlateImages/'
+        homePath = os.path.dirname(os.path.realpath(__file__))
+        path = homePath + '/licensePlateProcess/licensePlateImages/'
 
-        # files = glob.glob(path + '*')
-        # for f in files:
-        #     os.remove(f)
+        files = glob.glob(path + '*')
+        for f in files:
+            os.remove(f)
 
         print("Initializing")
 
@@ -161,23 +161,32 @@ class Master():
             vel_cmd.linear.x = 0.5
             vel_cmd.angular.z = 0.0
 
-        if self.seeCar and self.insideLoop:
-            print("saw first car")
+        if self.insideLoop and (self.seeCar or self.goStraight):
+            print("saw first inside car")
             vel_cmd.linear.x = 0.5
             vel_cmd.angular.z = 0.0
             self.goStraight = True
 
-        if not self.seeCar and self.goStraight:
-            self.goStraight = False
-            vel_cmd.linear.x = 0.5
-            vel_cmd.angular.z = 0.0
-            self.vel_pub.publish(vel_cmd)
-            print(self.goStraight)
-            time.sleep(0.2)
-            print("yup")
-            self.rightEdge = True
+        if not self.seeCar and self.goStraight and np.sum(self.lines[-10:,-75:]):
             self.insideLoop = False
+            self.goStraight = False
+            self.rightEdge = True
             self.finalCar = True
+            print("switching to left")
+
+
+
+        # if not self.seeCar and self.goStraight:
+        #     self.goStraight = False
+        #     vel_cmd.linear.x = 0.5
+        #     vel_cmd.angular.z = 0.0
+        #     self.vel_pub.publish(vel_cmd)
+        #     print(self.goStraight)
+        #     time.sleep(0.2)
+        #     print("yup")
+        #     self.rightEdge = True
+        #     self.insideLoop = False
+        #     self.finalCar = True
 
         if not isRunning.data:
             vel_cmd.linear.x = 0.0
@@ -325,7 +334,7 @@ class Master():
         self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
         self.nav_pub.publish(self.Running)
-        #self.findLicense_pub.publish(self.Running)
+        self.findLicense_pub.publish(self.Running)
 
 def main():
     rospy.init_node('Master', anonymous=True)
