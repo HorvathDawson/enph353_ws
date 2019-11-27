@@ -17,10 +17,10 @@ import heapq
 
 
 class CharacterModel:
-    def __init__(self):
+    def __init__(self, weight_path):
         K.clear_session()
         self.homePath = os.path.dirname(os.path.realpath(__file__))
-
+        self.weight_path = weight_path
         # dimensions of our images.
         self.img_width, self.img_height = 64, 64
 
@@ -150,10 +150,10 @@ class CharacterModel:
         return [labels[k] for k in largest_ind]
 
     def loadWeights(self):
-        self.model.load_weights(self.homePath + '/weights.h5')
+        self.model.load_weights(self.homePath + self.weight_path)
 
     def saveWeights(self):
-        self.model.save_weights(self.homePath + '/weights.h5')
+        self.model.save_weights(self.homePath + self.weight_path)
 
     def trainModel(self):
         history_conv = self.model.fit_generator(

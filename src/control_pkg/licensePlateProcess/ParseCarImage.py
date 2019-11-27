@@ -16,7 +16,7 @@ def ParseCarImage():
     TEAM_ID = "8"
     TEAM_PASS = "*******"
 
-    model = characterModel.CharacterModel()
+    model = characterModel.CharacterModel('/weights.h5')
     model.loadWeights()
 
     files = os.listdir(path)
@@ -36,6 +36,7 @@ def ParseCarImage():
             try:
                 # str = str(TEAM_ID +"," + TEAM_PASS + find_ParkingSpot(imgWarp[50:lx[1], lx[0]:ux[0]], model) + "," + find_license(imgLicense, model))
                 index = int(find_ParkingSpot(imgWarp[50:lx[1], lx[0]:ux[0]], model))
+
                 license = find_license(imgLicense, model)
                 if len(license) > 3:
                     strs[index].append(license)
