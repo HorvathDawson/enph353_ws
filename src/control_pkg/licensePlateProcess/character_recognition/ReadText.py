@@ -41,12 +41,12 @@ def find_license(img, model):
 
     # if len(sorted_ctrs) < 4:
     #     return ValueError("less than 4 values found")
-    dir = str(os.path.dirname(os.path.realpath(__file__)))
+    # dir = str(os.path.dirname(os.path.realpath(__file__)))
     licenseStr = ""
     for i, ctr in enumerate(sorted_ctrs):
         x, y, w, h = cv2.boundingRect(ctr)
         image = resized[y - 10:y + h + 10, x - 10:x + w +10]
-        path = dir + "/CharacterData/" + str(datetime.now().time()) +  ".png"
+        # path = dir + "/CharacterData/" + str(datetime.now().time()) +  ".png"
         # cv2.imwrite(path, image)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = cv2.addWeighted(image, 5, cv2.blur(image, (150, 150)), -4, 128)
@@ -62,6 +62,10 @@ def find_license(img, model):
     return licenseStr
 
 def find_ParkingSpot(img, model):
+
+    dir = str(os.path.dirname(os.path.realpath(__file__)))
+    path = dir + "/CharacterData/" + str(datetime.now().time()) +  ".png"
+
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
     lower = np.array([0, 0, 0])
@@ -89,8 +93,8 @@ def find_ParkingSpot(img, model):
     x, y, w, h = cv2.boundingRect(sorted_ctrs[1])
     if h > w:
         w = h
-    image = img[y:y + h, x:x + w]
-
+    image = img[y-10:y+10 + h, x-10:x+10 + w]
+    # cv2.imwrite(path, image)
     image = cv2.addWeighted(image, 5, cv2.blur(image, (150, 150)), -4, 128)
     prediction = model.predict(image)
     # print(prediction)

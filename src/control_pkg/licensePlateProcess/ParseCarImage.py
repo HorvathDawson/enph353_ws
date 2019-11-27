@@ -16,7 +16,7 @@ def ParseCarImage():
     TEAM_ID = "8"
     TEAM_PASS = "*******"
 
-    model = characterModel.CharacterModel()
+    model = characterModel.CharacterModel('/weights.h5')
     model.loadWeights()
 
     files = os.listdir(path)

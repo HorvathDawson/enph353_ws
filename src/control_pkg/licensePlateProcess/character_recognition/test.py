@@ -12,7 +12,7 @@ from keras.preprocessing.image import img_to_array
 from keras.preprocessing.image import ImageDataGenerator
 
 
-model = characterModel.CharacterModel()
+model = characterModel.CharacterModel('/weights.h5')
 model.loadWeights()
 
 
