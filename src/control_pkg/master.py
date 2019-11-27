@@ -88,6 +88,7 @@ class Master():
         self.frameCounter = 0
         self.finalCar = False
         self.truck_count = 0
+        self.timeout = 0
 
         self.x_cur,self.y_cur,self.w_cur,self.h_cur = 0,0,0,0
         self.speedReductionTimer = 0
@@ -184,6 +185,9 @@ class Master():
         self.findLicense_sub.unregister()
 
     def pedestrian_callback(self, isRunning):
+        if self.boundedImage is not None:
+            cv2.imshow("bounded", self.boundedImage)
+            cv2.waitKey(1)
         if not isRunning.data or self.insideloop or self.waitForTruck or self.enteringLoop:
             return
         elif self.onCrosswalk:
@@ -260,10 +264,6 @@ class Master():
         else:
             self.pedestrian_buffer = 0
             self.Navigation = True
-
-        if self.boundedImage is not None:
-            cv2.imshow("bounded", self.boundedImage)
-            cv2.waitKey(1)
 
     def checkMotion(self):
         self.arr.append(self.cv_image)
@@ -343,19 +343,21 @@ class Master():
         if self.insideloop and (self.seeCar or self.onCrosswalk):
             print("first car inside going straight")
             self.onCrosswalk = True
-            self.rightEdge = True
 
         if self.insideloop and self.onCrosswalk and np.sum(self.lines[-200:-80,400:550]) and not self.seeCar:
             print("stopping: now following lane")
             self.onCrosswalk = False
             self.insideloop = False
             self.finalCar = True
+            self.rightEdge = True
 
-        if self.seeCar and self.finalCar:
-            self.rightEdge = False
-            print("last car")
-        elif self.seeRed and self.finalCar:
-            self.Running = False
+        if self.seeCar and self.finalCar and self.Running:
+            self.timeout += 1
+            if self.timeout > 8:
+                self.Running = False
+                print("last car")
+        else:
+            self.timeout = 0
 
 
         self.pedestrian_pub.publish(self.Running)
