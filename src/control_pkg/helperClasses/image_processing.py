@@ -72,8 +72,7 @@ def find_roads(im):
     sorted_ctrs = sorted(ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
     im = im.copy()
     x, y, w, h = cv2.boundingRect(sorted_ctrs[0])
-    # cv2.rectangle(im,(x,y),(x+w,y+h),155,5)
-    return w, im
+    return w
 
 def hugh_lines(im):
     gray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)

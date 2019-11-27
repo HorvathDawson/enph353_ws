@@ -88,6 +88,7 @@ class Master():
         self.frameCounter = 0
         self.finalCar = False
         self.truck_count = 0
+        self.noPed = False
         self.timeout = 0
 
         self.x_cur,self.y_cur,self.w_cur,self.h_cur = 0,0,0,0
@@ -107,11 +108,11 @@ class Master():
         vel_cmd = Twist()
 
         if self.rightEdge == True:
-            setpoint = 1050
-            edge_1[:, :500] = 0
-            edge_2[:, :500] = 0
+            setpoint = 1000
+            edge_1[:, :400] = 0
+            edge_2[:, :400] = 0
         else:
-            setpoint = 140
+            setpoint = 180
             edge_1[:, 700:] = 0
             edge_2[:, 700:] = 0
         cX1, cY1 = COM(edge_1)
@@ -167,9 +168,10 @@ class Master():
             self.blindToRed = False
             self.rightEdge = True
         if self.enteringLoop:
-            w, self.boundedImage = find_roads(self.boundedImage)
+            w = find_roads(self.cv_image)
             if w > 1275:
                 self.waitForTruck = True
+                self.noPed = True
                 self.Navigation = False
                 self.nav_pub.publish(self.Running)
 
@@ -181,6 +183,7 @@ class Master():
         arr = ParseCarImage()
         for i in range(len(arr)):
             print(arr[i])
+            rospy.sleep(0.1)
             self.license_pub.publish(arr[i])
         self.findLicense_sub.unregister()
 
@@ -188,7 +191,7 @@ class Master():
         if self.boundedImage is not None:
             cv2.imshow("bounded", self.boundedImage)
             cv2.waitKey(1)
-        if not isRunning.data or self.insideloop or self.waitForTruck or self.enteringLoop:
+        if not isRunning.data or self.noPed or self.waitForTruck:
             return
         elif self.onCrosswalk:
             # do actions to deal with it
@@ -266,15 +269,15 @@ class Master():
             self.Navigation = True
 
     def checkMotion(self):
-        self.arr.append(self.cv_image)
+        self.arr.append(self.cv_image[:,:])
 
         if(len(self.arr) == self.arr.maxlen):
             w = 0
             h = 0
-            background = cv2.cvtColor(self.arr[0], cv2.COLOR_BGR2GRAY)
+            background = cv2.cvtColor(self.arr[-4], cv2.COLOR_BGR2GRAY)
             background = cv2.GaussianBlur(background, (21, 21), 0)
 
-            liveFeed = cv2.cvtColor(self.arr[4], cv2.COLOR_BGR2GRAY)
+            liveFeed = cv2.cvtColor(self.arr[-1], cv2.COLOR_BGR2GRAY)
             liveFeed = cv2.GaussianBlur(liveFeed, (21, 21), 0)
 
             frameDelta = cv2.absdiff(background, liveFeed)
@@ -299,6 +302,8 @@ class Master():
                 print("truck is in way")
                 ctr = ctrs[-1]
                 x, y, w, h = cv2.boundingRect(ctr)
+                if ((w*h < 1000) or x < 250):
+                    return False
             else:
                 print("truck out of way")
                 return False

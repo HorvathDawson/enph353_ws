@@ -49,5 +49,5 @@ def ParseCarImage():
         if len(strs[i]) > 0:
             plate = strs[i][0]
             licensePlates.append(TEAM_ID +"," + TEAM_PASS + "," + str(i) + "," + plate)
-    return licensePlates[:]
+    return licensePlates[:8]
 print(ParseCarImage())
