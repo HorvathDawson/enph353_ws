@@ -87,13 +87,14 @@ class Master():
         self.insideloop = False
         self.frameCounter = 0
         self.finalCar = False
+        self.truck_count = 0
 
         self.x_cur,self.y_cur,self.w_cur,self.h_cur = 0,0,0,0
         self.speedReductionTimer = 0
         self.passedPedestrians = 0
 
         self.q = deque([], maxlen=3)
-        self.arr = deque([], maxlen=5)
+        self.arr = deque([], maxlen=20)
         self.x_cur, self.y_cur, self.w_cur, self.h_cur = 0, 0, 0, 0
 
     def navigation_callback(self, isRunning):
@@ -101,15 +102,15 @@ class Master():
         if(self.lines is None):
             return
         edge_1 = self.lines[-60:-40, :].copy()
-        edge_2 = self.lines[-150:-130, :].copy()
+        edge_2 = self.lines[-170:-130, :].copy()
         vel_cmd = Twist()
 
         if self.rightEdge == True:
-            setpoint = 1000
+            setpoint = 1050
             edge_1[:, :500] = 0
             edge_2[:, :500] = 0
         else:
-            setpoint = 175
+            setpoint = 140
             edge_1[:, 700:] = 0
             edge_2[:, 700:] = 0
         cX1, cY1 = COM(edge_1)
@@ -231,7 +232,7 @@ class Master():
                     if((w * h > (1200 * 700) / 150) and ((w * h) < (1200 * 700 / 5)) and (abs(x + (w / 2) - 600) < 400) and (abs(y + (h / 2) - 350) < 250)):
                         self.seePedestrian = True
                         self.frameCounter += 1
-                        if(self.frameCounter > 15):
+                        if(self.frameCounter > 17):
                             self.frameCountReached = True
                         self.x_cur, self.y_cur, self.w_cur, self.h_cur = x, y, w, h
                         color = (0, 0, 255)  # red
@@ -273,7 +274,7 @@ class Master():
             background = cv2.cvtColor(self.arr[0], cv2.COLOR_BGR2GRAY)
             background = cv2.GaussianBlur(background, (21, 21), 0)
 
-            liveFeed = cv2.cvtColor(self.arr[-1], cv2.COLOR_BGR2GRAY)
+            liveFeed = cv2.cvtColor(self.arr[4], cv2.COLOR_BGR2GRAY)
             liveFeed = cv2.GaussianBlur(liveFeed, (21, 21), 0)
 
             frameDelta = cv2.absdiff(background, liveFeed)
@@ -295,9 +296,11 @@ class Master():
                 ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
 
             if(len(ctrs) != 0):
+                print("truck is in way")
                 ctr = ctrs[-1]
                 x, y, w, h = cv2.boundingRect(ctr)
             else:
+                print("truck out of way")
                 return False
 
             self.boundedImage = self.boundedImage.copy()
@@ -321,19 +324,29 @@ class Master():
         if self.waitForTruck:
             print("waiting for truck")
             self.enteringLoop = False
-            print("navigation, " + str(self.Navigation))
-            if not self.checkMotion():
+            check = self.checkMotion()
+            if not check:
+                self.truck_count += 1
+            else:
+                self.truck_count = 0
+            if not check and self.truck_count > 5:
                 self.waitForTruck = False
                 self.Navigation = True
                 self.insideloop = True
+            # working code below
+            # print("waiting for truck")
+            # if not self.checkMotion():
+            #     self.waitForTruck = False
+            #     self.Navigation = True
+            #     self.insideloop = True
 
         if self.insideloop and (self.seeCar or self.onCrosswalk):
-            print("first car inside")
+            print("first car inside going straight")
             self.onCrosswalk = True
-
-        if self.insideloop and self.onCrosswalk and not self.seeCar and not np.sum(self.lines[-500:-100,:450]):
-            print("straight forward")
             self.rightEdge = True
+
+        if self.insideloop and self.onCrosswalk and np.sum(self.lines[-200:-80,400:550]) and not self.seeCar:
+            print("stopping: now following lane")
             self.onCrosswalk = False
             self.insideloop = False
             self.finalCar = True
