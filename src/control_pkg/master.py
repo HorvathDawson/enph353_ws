@@ -19,11 +19,20 @@ import imutils
 from collections import deque
 import time
 from std_msgs.msg import Bool, Int8, Int32, Float64, String
-from licensePlateProcess.ParseCarImage import ParseCarImage
+#from licensePlateProcess.ParseCarImage import ParseCarImage
+import glob
+import os
 
 
 class Master():
     def __init__(self):
+        # homePath = os.path.dirname(os.path.realpath(__file__))
+        # path = homePath + '/licensePlateProcess/licensePlateImages/'
+
+        # files = glob.glob(path + '*')
+        # for f in files:
+        #     os.remove(f)
+
         print("Initializing")
 
         # Create subscriber nodes for master class
@@ -194,6 +203,7 @@ class Master():
         elif not self.seeCar and self.lastOutCar:
             self.rightEdge = False
 
+
         if self.lastOutCar and find_inside_stop(self.cv_image):
             print("inside loop")
             self.insideLoop = True
@@ -315,7 +325,7 @@ class Master():
         self.pedestrian_pub.publish(self.Running)
         self.improcess_pub.publish(self.Running)
         self.nav_pub.publish(self.Running)
-        self.findLicense_pub.publish(self.Running)
+        #self.findLicense_pub.publish(self.Running)
 
 def main():
     rospy.init_node('Master', anonymous=True)
