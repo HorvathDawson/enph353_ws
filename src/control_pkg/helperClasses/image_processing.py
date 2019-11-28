@@ -49,7 +49,7 @@ def find_Grass(im):
 
 def find_roads(im):
     img = im.copy()
-    img[-250:,:] = 0 # finds it perpendicular
+    img[-257:,:] = 0 # finds it perpendicular
     # img[-150:,:] = 0 works
     # img[-20:,:] = 0
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)

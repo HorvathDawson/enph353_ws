@@ -19,6 +19,7 @@ import time
 from std_msgs.msg import Bool, Int8, Int32, Float64, String
 from licensePlateProcess.ParseCarImage import ParseCarImage
 from datetime import datetime
+import time
 import os
 import glob
 
@@ -56,6 +57,7 @@ class Master():
         self.findLicense_pub = rospy.Publisher(
             '/findLicense', Bool, queue_size=1)
 
+        self.starttime = time.time()
         self.bridge = CvBridge()
 
         self.lines = None
@@ -104,21 +106,28 @@ class Master():
         if(self.lines is None):
             return
         edge_1 = self.lines[-60:-40, :].copy()
-        edge_2 = self.lines[-170:-130, :].copy()
+        edge_2 = self.lines[-180:-140, :].copy()
         vel_cmd = Twist()
 
         if self.rightEdge == True:
             setpoint = 1000
-            edge_1[:, :400] = 0
-            edge_2[:, :400] = 0
+            edge_1[:, :500] = 0
+            edge_2[:, :500] = 0
         else:
-            setpoint = 180
+            setpoint = 225
             edge_1[:, 700:] = 0
             edge_2[:, 700:] = 0
         cX1, cY1 = COM(edge_1)
         cX2, cY2 = COM(edge_2)
 
-        if cX1 == 0 or cX2 == 0:
+
+        if cX1 == 0 and cX2 == 0 and self.rightEdge:
+            center_detour = -(self.hysteresisSize + 1)
+            print("right edgee")
+        elif cX1 == 0 and cX2 == 0 and not self.rightEdge:
+            center_detour = self.hysteresisSize + 1
+            print("left edgee")
+        elif cX1 == 0 or cX2 == 0:
             center_detour = setpoint - cX1 - cX2
         else:
             center_detour = setpoint - (cX1 + cX2) / 2
@@ -159,7 +168,7 @@ class Master():
         self.boundedImage = self.cv_image
         self.lines = find_lines(self.cv_image)
 
-        if np.sum(find_Red(self.cv_image[-50:-1, 300:500].copy())) > 200:
+        if np.sum(find_Red(self.cv_image[-125:-1, 300:500].copy())) > 200:
             self.seeRed = True
         else:
             self.seeRed = False
@@ -239,7 +248,7 @@ class Master():
                     if((w * h > (1200 * 700) / 150) and ((w * h) < (1200 * 700 / 5)) and (abs(x + (w / 2) - 600) < 400) and (abs(y + (h / 2) - 350) < 250)):
                         self.seePedestrian = True
                         self.frameCounter += 1
-                        if(self.frameCounter > 17):
+                        if(self.frameCounter > 15):
                             self.frameCountReached = True
                         self.x_cur, self.y_cur, self.w_cur, self.h_cur = x, y, w, h
                         color = (0, 0, 255)  # red
@@ -369,7 +378,8 @@ class Master():
         self.improcess_pub.publish(self.Running)
         self.nav_pub.publish(self.Running)
         self.findLicense_pub.publish(self.Running)
-
+        if((time.time()-self.starttime)) > 60*3.5:
+            self.Running = False
 
 def main():
     rospy.init_node('Master', anonymous=True)

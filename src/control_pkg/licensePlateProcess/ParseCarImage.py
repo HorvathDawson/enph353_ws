@@ -35,7 +35,7 @@ def ParseCarImage():
         if(w * h > 2000 and not imgLicense[0, 0, 0] == 155):
             try:
                 # str = str(TEAM_ID +"," + TEAM_PASS + find_ParkingSpot(imgWarp[50:lx[1], lx[0]:ux[0]], model) + "," + find_license(imgLicense, model))
-                index = int(find_ParkingSpot(imgWarp[50:lx[1], lx[0]:ux[0]], model))
+                index = int(find_ParkingSpot(imgWarp[50:lx[1], lx[0]:ux[0]], model)) + 1
 
                 license = find_license(imgLicense, model)
                 if len(license) > 3:
@@ -49,5 +49,5 @@ def ParseCarImage():
         if len(strs[i]) > 0:
             plate = strs[i][0]
             licensePlates.append(TEAM_ID +"," + TEAM_PASS + "," + str(i) + "," + plate)
-    return licensePlates[:8]
+    return licensePlates[:]
 print(ParseCarImage())
